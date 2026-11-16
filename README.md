@@ -154,7 +154,7 @@ Cloudflare builds the app from this repository on each push and runs it as one W
 
 The database has no id in `wrangler.jsonc`, so the first deploy creates one named `wardrobe-builder`. The server creates its own tables on first use. If a deploy ever fails on the database, create a D1 database by hand in the dashboard and add its id as `database_id`.
 
-`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it allows is `https://api.weather.gov`, for the forecast. The small server is at the app's own address, so it needs no entry. Any other feature that calls an outside service (an Instagram iframe) has to add that address there, or the browser will block it.
+`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it allows is `https://api.weather.gov`, for the forecast. The small server is at the app's own address, so it needs no entry. The permissions policy lets only the app's own address ask for the phone's location, which the Weather card in Settings uses, and turns the microphone and payments off. Any other feature that calls an outside service (an Instagram iframe) has to add that address there, or the browser will block it.
 
 To run everything locally the way Cloudflare does:
 
