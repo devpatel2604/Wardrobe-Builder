@@ -1,4 +1,5 @@
-import type { WishOption } from './types';
+import type { Profile } from '../types';
+import type { WishItem, WishOption } from './types';
 
 /**
  * "Find options": leads from the AI provider's own web search.
@@ -176,5 +177,29 @@ export function leadToOption(lead: Lead, id: string, today: string): WishOption 
     note: [lead.note, from].filter(Boolean).join(' ') || undefined,
     source: 'ai-lead',
     addedOn: today,
+  };
+}
+
+/** The owner's size for a line, such as "Pants 30 × 30". */
+export function sizeFor(item: Pick<WishItem, 'sizeLabel'>, profile: Profile): { label: string; value: string } | undefined {
+  const entry = profile.sizes.find((s) => s.label === item.sizeLabel);
+  return entry ? { label: entry.label, value: entry.value } : undefined;
+}
+
+/** What "find options" sends: the piece, the size, the stores and the rules. Nothing else about the owner. */
+export function leadsRequest(item: WishItem, profile: Profile): LeadsRequest {
+  const cut = (text: string) => text.slice(0, LEADS_LIMITS.listItemChars);
+  const size = sizeFor(item, profile);
+  const lookFor = [item.lookFor, item.spec.cloth ? `Cloth: ${item.spec.cloth}.` : undefined].filter(Boolean).join(' ');
+  return {
+    name: item.name.slice(0, LEADS_LIMITS.name),
+    lookFor: lookFor ? lookFor.slice(0, LEADS_LIMITS.lookFor) : undefined,
+    size: size ? `${size.label} ${size.value}`.slice(0, LEADS_LIMITS.size) : undefined,
+    stores: profile.stores.slice(0, LEADS_LIMITS.listItems).map((s) => cut(s.name)),
+    rules: profile.rules
+      .filter((r) => r.kind === 'hard' || r.kind === 'default')
+      .slice(0, LEADS_LIMITS.listItems)
+      .map((r) => cut(r.text)),
+    have: item.options.slice(0, LEADS_LIMITS.listItems).map((o) => cut(`${o.name} (${o.store})`)),
   };
 }

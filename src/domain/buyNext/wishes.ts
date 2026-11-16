@@ -19,7 +19,8 @@ export function wishKey(item: { name: string; spec: Pick<WishSpec, 'slots' | 'co
   const isTop = slot === 'main-top' || slot === 'under-layer';
   const color = colorGroup(item.spec as Piece) ?? 'any';
   const kind = kindOf({ name: item.name, tags: item.spec.tags, slots: item.spec.slots, neckline: item.spec.neckline }) ?? '';
-  return [slot, color, isTop ? (item.spec.neckline ?? '') : '', kind].join('|');
+  // A shirt is a top whether it was listed as the top you see or as the layer under a knit.
+  return [isTop ? 'top' : slot, color, isTop ? (item.spec.neckline ?? '') : '', kind].join('|');
 }
 
 /** The tags of a piece that is missing from a saved look. Only what a picture shows. */

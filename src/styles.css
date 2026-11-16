@@ -1727,3 +1727,123 @@ button.look-card:disabled {
   opacity: 0.55;
   cursor: default;
 }
+
+/* Buy next */
+
+.buy-list,
+.buy-options,
+.more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.buy-card,
+.more-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.buy-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.buy-card-head h2,
+.more-link h2 {
+  font-size: 18px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.buy-rank {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--navy-ink);
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.buy-tags {
+  gap: 6px;
+}
+
+.buy-standing {
+  font-weight: 600;
+}
+
+.buy-option-line {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.buy-weak {
+  color: #7a5a12;
+}
+
+.buy-total {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.buy-option {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.buy-option:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.buy-option h3 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.buy-option .row {
+  align-items: center;
+}
+
+.buy-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--chip);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.buy-links a.chip {
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.buy-quiet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.buy-quiet a {
+  font-weight: 600;
+}
+
+.fit-check {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

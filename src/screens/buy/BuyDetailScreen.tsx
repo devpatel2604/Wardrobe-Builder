@@ -14,6 +14,7 @@ import {
   reopenWish,
   updateOption,
 } from '../../data/wishlistRepo';
+import { leadsRequest, sizeFor } from '../../domain/buyNext/leads';
 import type { RankedWish } from '../../domain/buyNext/score';
 import type { WishItem, WishOption } from '../../domain/buyNext/types';
 import { checkLine, costPerWear, money, monthDay, priceOf, priceText, safeUrl, searchLinks, searchWords, standingOf } from '../../domain/buyNext/wishes';
@@ -27,7 +28,7 @@ import { Card, Chips, TextField } from '../../ui/controls';
 import { OutfitLine, ReasonList } from '../../ui/OutfitCard';
 import { RuleFindings } from '../../ui/RuleFindings';
 import { WishTags } from './BuyNextScreen';
-import { leadsRequest, sizeFor, useBuyData, useRanking } from './buyData';
+import { useBuyData, useRanking } from './buyData';
 import { CheckForm, OptionForm } from './OptionForms';
 
 /** Why a "find options" tap failed, in words for the owner. The store search links never depend on it. */

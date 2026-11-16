@@ -411,13 +411,19 @@ function unlockText(before: number[], alone: number[], partner: WishItem | undef
   const openedDry = opened.filter((cell) => !cell.wet);
   const openedWet = opened.filter((cell) => cell.wet);
   if (openedDry.length > 0) {
-    const where = openedDry.map((cell) => forOccasion(cell.occasion)).join(' and ');
-    return `Gives you outfits ${where} for the first time. ${plural(dry, 'new outfit')} in all: ${occasionCounts(alone, false)}.`;
+    const where = listWords(openedDry.map((cell) => forOccasion(cell.occasion)));
+    return `Your first outfits ${where}. ${plural(dry, 'new outfit')} in all: ${occasionCounts(alone, false)}.`;
   }
   if (openedWet.length > 0 && wet > 0) {
-    return `Gives you wet-day outfits for the first time: ${occasionCounts(alone, true)}.${dry > 0 ? ` On dry days it adds ${dry}.` : ''}`;
+    const where = listWords(openedWet.map((cell) => forOccasion(cell.occasion)));
+    return `Your first wet-day outfits ${where}.${dry > 0 ? ` On dry days it adds ${dry}.` : ''}`;
   }
   return `Adds ${plural(dry, 'outfit')}: ${occasionCounts(alone, false)}.`;
+}
+
+/** "a, b and c" */
+function listWords(words: string[]): string {
+  return words.length <= 1 ? (words[0] ?? '') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
 }
 
 function lowerFirst(text: string): string {

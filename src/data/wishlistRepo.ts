@@ -1,5 +1,6 @@
 import { readWithAi, type AiAnswer } from './ai';
 import { db, newId, nowIso } from './db';
+import { connectBuyList } from './lookWishes';
 import type { FitCheck } from '../domain/buyNext/fitCheck';
 import { leadToOption, pageKey, type LeadsRequest, type LeadsResult } from '../domain/buyNext/leads';
 import type { LookWish, Purchase, StoreCheck, WishItem, WishOption, WishSpec } from '../domain/buyNext/types';
@@ -67,7 +68,7 @@ async function change(id: string, edit: (item: WishItem) => WishItem): Promise<W
   });
 }
 
-export function updateWish(id: string, draft: WishDraft): Promise<WishItem> {
+export async function updateWish(id: string, draft: WishDraft): Promise<WishItem> {
   const clean = cleanDraft(draft);
   return change(id, (item) => ({ ...item, ...clean }));
 }
@@ -99,12 +100,12 @@ function cleanOption(draft: OptionDraft): OptionDraft {
   return { ...draft, name, store, url, priceText: text(draft.priceText), givesUp: text(draft.givesUp), note: text(draft.note) };
 }
 
-export function addOption(itemId: string, draft: OptionDraft, today: string): Promise<WishItem> {
+export async function addOption(itemId: string, draft: OptionDraft, today: string): Promise<WishItem> {
   const option: WishOption = { source: 'you', ...cleanOption(draft), id: newId(), addedOn: today };
   return change(itemId, (item) => ({ ...item, options: [...withOnePick(item.options, option), option] }));
 }
 
-export function updateOption(itemId: string, optionId: string, draft: OptionDraft): Promise<WishItem> {
+export async function updateOption(itemId: string, optionId: string, draft: OptionDraft): Promise<WishItem> {
   const clean = cleanOption(draft);
   return change(itemId, (item) => ({
     ...item,
@@ -315,3 +316,7 @@ export async function findOptions(itemId: string, request: LeadsRequest, today: 
   });
   return { item, added, result: answer.result, today: answer.today };
 }
+
+// The saved-look screens send their missing pieces here. They are written
+// against a small interface, so they do not depend on this module.
+connectBuyList({ addWishes, removeLookFromWishes, listWishes });

@@ -83,6 +83,17 @@ function RankedCard({ ranked, today, total, unpriced }: { ranked: RankedWish; to
   );
 }
 
+/** Each line with what the list costs down to it, and how many lines above have no price. */
+export function runningTotals(ranked: RankedWish[]): { ranked: RankedWish; total: number; unpriced: number }[] {
+  const rows: { ranked: RankedWish; total: number; unpriced: number }[] = [];
+  for (const entry of ranked) {
+    const last = rows[rows.length - 1];
+    const price = priceToPay(entry.item);
+    rows.push({ ranked: entry, total: (last?.total ?? 0) + (price ?? 0), unpriced: (last?.unpriced ?? 0) + (price === undefined ? 1 : 0) });
+  }
+  return rows;
+}
+
 function QuietList({ title, hint, rows }: { title: string; hint?: string; rows: { item: WishItem; text?: string }[] }) {
   if (rows.length === 0) return null;
   return (
@@ -112,14 +123,7 @@ export function BuyNextScreen() {
   const dropped = data.wishes.filter((w) => w.state === 'dropped');
   const toFit = bought.filter((w) => !w.fitCheck);
 
-  let total = 0;
-  let unpriced = 0;
-  const rows = ranking.ranked.map((ranked) => {
-    const price = priceToPay(ranked.item);
-    if (price === undefined) unpriced += 1;
-    else total += price;
-    return { ranked, total, unpriced };
-  });
+  const rows = runningTotals(ranking.ranked);
 
   return (
     <>
