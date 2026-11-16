@@ -5,8 +5,11 @@ import type { D1Database } from './env';
  *
  * Everything in `chunks` is text the phone encrypted before sending. The
  * server stores it and hands it back, and cannot read it.
+ *
+ * Raise SCHEMA_VERSION whenever a table is added, so servers that are
+ * already running create it.
  */
-const SCHEMA_VERSION = '1';
+const SCHEMA_VERSION = '2';
 
 const TABLES = [
   `CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -24,6 +27,16 @@ const TABLES = [
      endpoint TEXT PRIMARY KEY, p256dh TEXT NOT NULL, auth TEXT NOT NULL, app_url TEXT NOT NULL,
      time_zone TEXT NOT NULL, hour INTEGER NOT NULL, office_days TEXT NOT NULL, lat REAL, lon REAL,
      last_sent_on TEXT, last_result TEXT, updated_at TEXT NOT NULL)`,
+  // Things shared from the iPhone's share menu, until the app collects them.
+  `CREATE TABLE IF NOT EXISTS inbox (
+     id TEXT PRIMARY KEY, kind TEXT NOT NULL, received_at TEXT NOT NULL, url TEXT, title TEXT, body TEXT,
+     file_type TEXT, file_size INTEGER NOT NULL DEFAULT 0, file_chunks INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE TABLE IF NOT EXISTS inbox_chunks (
+     item_id TEXT NOT NULL, seq INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (item_id, seq))`,
+  // How many AI calls were made each day, by kind. Numbers only.
+  `CREATE TABLE IF NOT EXISTS ai_usage (
+     day TEXT NOT NULL, kind TEXT NOT NULL, calls INTEGER NOT NULL DEFAULT 0,
+     input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, kind))`,
 ];
 
 const ready = new WeakMap<D1Database, Promise<void>>();
@@ -54,10 +67,14 @@ export function ensureSchema(db: D1Database): Promise<void> {
   return pending;
 }
 
-/** Deletes everything the server holds. The empty tables stay. */
+/**
+ * Deletes everything the server holds. The empty tables stay.
+ * The day's AI counts stay too: they hold no personal data, and clearing
+ * them would reset the daily limit.
+ */
 export async function eraseAll(db: D1Database): Promise<void> {
   await db.batch([
-    ...['chunks', 'blobs', 'snapshots', 'reminders'].map((table) => db.prepare(`DELETE FROM ${table}`)),
+    ...['chunks', 'blobs', 'snapshots', 'reminders', 'inbox', 'inbox_chunks'].map((table) => db.prepare(`DELETE FROM ${table}`)),
     db.prepare(`DELETE FROM config WHERE key <> 'schema'`),
   ]);
 }

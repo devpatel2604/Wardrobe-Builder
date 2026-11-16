@@ -96,7 +96,7 @@ Things to know before changing it:
 
 ## Data
 
-Everything lives in seven tables in the browser's IndexedDB.
+Everything lives in eight tables in the browser's IndexedDB.
 
 | Table | Holds |
 | --- | --- |
@@ -107,6 +107,7 @@ Everything lives in seven tables in the browser's IndexedDB.
 | `colorTests` | One row: the colors chosen, which photo belongs to which color, every pick, and what was saved to the palette |
 | `dayPlans` | One row per day you changed: its occasions, and the weather if you set it by hand |
 | `outfitLog` | One row per answer to a suggested outfit: worn (with a rating) or passed over (with a reason) |
+| `inbox` | Things waiting to be added: a photo, a store page, a link or a screenshot, with the tags an AI model proposed. Never in a backup |
 
 The types are in `src/domain/types.ts`.
 
@@ -151,6 +152,7 @@ Cloudflare builds the app from this repository on each push and runs it as one W
 | Deploy command | `npx wrangler deploy` |
 | Node version | 22, from `.nvmrc` |
 | Secret `APP_KEY` | The app key, 20 characters or more. Set it in the dashboard: the Worker, then Settings, then Variables and Secrets. Never put it in this repository |
+| Secret `ANTHROPIC_API_KEY` | The AI provider's key, set the same way. Without it everything works except AI requests |
 
 The database has no id in `wrangler.jsonc`, so the first deploy creates one named `wardrobe-builder`. The server creates its own tables on first use. If a deploy ever fails on the database, create a D1 database by hand in the dashboard and add its id as `database_id`.
 
@@ -186,13 +188,30 @@ Every route except `/api/health` needs the header `Authorization: Bearer <app ke
 | `PUT` and `DELETE /api/reminders` | Turns the evening reminder on or off for one device |
 | `POST /api/reminders/test` | Sends one alert now |
 | `GET /api/forecast?lat=&lon=` | Hourly forecast from the US National Weather Service, for a point rounded to two decimals |
-| `DELETE /api/data` | Erases everything the server holds |
+| `POST /api/inbox` | Takes a link, a store page's text or a picture from the share-menu Shortcut. Answers in plain words, which the Shortcut shows |
+| `GET /api/inbox` | Lists what is waiting. `GET /api/inbox/:id/file` gives one picture, `DELETE /api/inbox/:id` removes an item |
+| `GET /api/ai` | Whether the AI key is set, the kinds of request, and today's count |
+| `POST /api/ai/:kind` | Passes one fixed kind of request to the AI provider and returns its answer |
+| `DELETE /api/data` | Erases everything the server holds, except the day's AI counts |
 
 **Backup.** A backup is a *snapshot* (the export file without photo bytes, plus a list of photos) and the photos it names. Each photo is uploaded once and shared between snapshots. The phone encrypts each item with AES-256-GCM before upload (`src/data/vault.ts`). The key comes from a 256-bit *recovery code* that is made on the phone and never sent. The server keeps the 7 newest snapshots and deletes photos no snapshot names. Photos with the class `of-me` are never uploaded.
 
 **Reminder.** The phone gets an alert address from its push service (Apple's, on an iPhone) and gives it to the server with the office days, the hour and the time zone. A job runs each hour, and sends the alert when the phone's own clock reaches the chosen hour on the evening before an office day. The message is encrypted for the phone (RFC 8291) and signed (RFC 8292) with keys the server makes on first use (`server/push.ts`). It uses the declarative form, so iOS 18.4 and later show it without waking the app. `public/push-sw.js` shows it on older systems.
 
-**What the server holds.** Encrypted backups, each device's alert address with its reminder settings (office days, hour, time zone, forecast point), and its own signing keys. No profile, no wardrobe, no readable photo.
+**Inbox.** A web app cannot appear in the iPhone share menu, so a Shortcut posts what is shared to `POST /api/inbox` (`server/inbox.ts`): a form with `kind` (`photo`, `page` or `look`), and `url`, `title`, `text` or a `file`. The key goes in the `Authorization` header, or in a form field `key` if the Shortcut cannot send a header. The server holds at most 40 items and 8 MB a picture. The app collects them when it opens (`src/data/inboxRepo.ts`), keeps them in its own `inbox` table and deletes them from the server. Inbox items are not encrypted, unlike the backup: they are clothing photos, store pages and links, and they rest on the server only until the app next opens.
+
+**AI requests.** The AI provider's key is a second Cloudflare secret, `ANTHROPIC_API_KEY`. It never reaches the app. The app names a *kind* and sends that kind's data to `POST /api/ai/:kind`. The prompt, the model, the answer's shape and the limits are all written on the server (`server/ai`), so a leaked app key can only run these few small jobs:
+
+| Kind | Sent | Answer |
+| --- | --- | --- |
+| `piece-photo` | One photo of a piece, and optionally one of its label | Proposed tags for the piece |
+| `piece-page` | A store page's text as copied by the phone, a screenshot of it, or both | Proposed tags, with brand, cloth and price |
+
+Each call is counted before it is made, per kind and per day (UTC), in the `ai_usage` table. Over the limit, the server refuses without calling the provider. The defaults are 60 a day for each kind and 120 a day in all. A Cloudflare variable `AI_DAILY_LIMIT` changes the total. `AI_MODELS` (for example `piece-photo=claude-sonnet-5-5`) answers a kind with another model, to compare models without a code change. Nothing that passes through is stored or logged: no photo, no page text, no answer.
+
+To add a kind, write a file in `server/ai` that exports an `AiKind` (see `types.ts`) and add it to the list in `kinds.ts`. A kind's `schema` makes the model answer in exactly that JSON shape. The server never loads a store's page: page text is collected by the owner's own phone.
+
+**What the server holds.** Encrypted backups, each device's alert address with its reminder settings (office days, hour, time zone, forecast point), its own signing keys, inbox items until the app collects them, and the day's AI counts. No profile, no wardrobe, no readable backup.
 
 **Tests.** `server/*.test.ts` run the server code against a local copy of the Cloudflare database. `src/data/serverBackup.test.ts` runs the app's backup and restore against that same server code, so the two cannot drift apart.
 

@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
 import type { ColorTest } from '../domain/colorTest';
+import type { InboxItem } from '../domain/inbox';
 import type { DayPlan, OutfitLogEntry } from '../domain/outfits/records';
 import type { Photo, Piece, Profile } from '../domain/types';
 
@@ -21,6 +22,7 @@ export class WardrobeDb extends Dexie {
   colorTests!: EntityTable<ColorTest, 'id'>;
   dayPlans!: EntityTable<DayPlan, 'date'>;
   outfitLog!: EntityTable<OutfitLogEntry, 'id'>;
+  inbox!: EntityTable<InboxItem, 'id'>;
 
   constructor(name = 'wardrobe-builder') {
     super(name);
@@ -38,6 +40,10 @@ export class WardrobeDb extends Dexie {
     this.version(3).stores({
       dayPlans: 'date',
       outfitLog: 'id, date',
+    });
+    // Things waiting to be added: shared from the share menu, pasted, or picked.
+    this.version(4).stores({
+      inbox: 'id, kind, receivedAt',
     });
   }
 }
