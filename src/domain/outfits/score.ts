@@ -69,7 +69,7 @@ const PALETTE_NAMES: Partial<Record<string, string[]>> = {
   mustard: ['mustard'],
 };
 
-const CONFIDENCE_FACTOR: Record<Confidence, number> = { high: 1, 'medium-high': 0.8, medium: 0.6, low: 0.35, unknown: 0.2 };
+export const CONFIDENCE_FACTOR: Record<Confidence, number> = { high: 1, 'medium-high': 0.8, medium: 0.6, low: 0.35, unknown: 0.2 };
 
 const UNRATED: FaceRating = { verdict: 'unrated', confidence: 'unknown', tested: false };
 
