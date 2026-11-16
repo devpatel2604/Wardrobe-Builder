@@ -125,7 +125,10 @@ export function SettingsScreen() {
       <ServerCards profile={server?.profile} />
 
       <Card title="Back up to a file">
-        <p className="hint">Saves your profile, pieces and clothing photos to one file that you keep. Photos of you are never included.</p>
+        <p className="hint">
+          Saves your profile, pieces, clothing photos and color test results to one file that you keep. Photos of you, such as the color test
+          photos, are never included.
+        </p>
         <button type="button" className="btn btn-primary" onClick={() => void onExport()}>
           Make a backup file
         </button>

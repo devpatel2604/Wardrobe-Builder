@@ -71,7 +71,7 @@ describe('connecting to the server', () => {
     await user.type(screen.getByLabelText('App key'), `  ${KEY} `);
     await user.click(screen.getByRole('button', { name: 'Connect' }));
     expect(await screen.findByRole('heading', { name: 'Automatic backup' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Evening reminder' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Evening reminder' })).toBeInTheDocument();
     expect(await getAppKey()).toBe(KEY);
   });
 

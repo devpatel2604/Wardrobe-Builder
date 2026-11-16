@@ -9,7 +9,8 @@ export type Evidence =
   | 'your-choice' // a choice the owner made when asked
   | 'research' // has a study behind it
   | 'convention' // stylists agree, no study
-  | 'working-rule'; // the app's own starting rule, tuned by feedback
+  | 'working-rule' // the app's own starting rule, tuned by feedback
+  | 'your-test'; // the owner's own picks in the color photo test
 
 /** The four kinds of rule from the coloring report. */
 export type RuleKind =
@@ -39,6 +40,23 @@ export interface Rule {
 
 export type Confidence = 'high' | 'medium-high' | 'medium' | 'low' | 'unknown';
 
+/** What the color photo test found for a color worn next to the face. */
+export type NearFaceVerdict = 'best' | 'fine' | 'avoid';
+
+/** The numbers behind a tested palette entry. */
+export interface PaletteTest {
+  verdict: NearFaceVerdict;
+  /** Place in the owner's ranking, 1 is best. */
+  rank: number;
+  /** How many colors were ranked. */
+  of: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  /** YYYY-MM-DD */
+  testedOn: string;
+}
+
 export interface PaletteEntry {
   id: string;
   color: string;
@@ -48,6 +66,12 @@ export interface PaletteEntry {
   awayFromFace: string;
   confidence: Confidence;
   why: string;
+  /** Set on entries that stand for one color family, so pieces can be matched to them. */
+  family?: ColorFamily;
+  /** Where the entry comes from. Left out means stylists' convention. */
+  evidence?: Evidence;
+  /** Present once the color photo test has ranked this color. */
+  test?: PaletteTest;
 }
 
 export interface SizeEntry {
@@ -127,6 +151,7 @@ export type ColorFamily =
   | 'brown'
   | 'dark-brown'
   | 'light-grey'
+  | 'grey'
   | 'charcoal'
   | 'black'
   | 'mustard'
@@ -199,6 +224,7 @@ export type PhotoKind = 'clothing' | 'inspiration' | 'of-me';
 
 export interface Photo {
   id: string;
+  /** The piece this photo belongs to. A color-test photo holds "color-test:<color>" here. */
   pieceId: string;
   kind: PhotoKind;
   /** Position within the piece, lowest first. The first one is the cover. */
