@@ -213,5 +213,113 @@
       "cloth": "Steel bracelet"
     }
   ],
-  "photos": []
+  "photos": [],
+  "wishlist": [
+    {
+      "id": "wish-belt",
+      "name": "Black belt",
+      "spec": {
+        "slots": [
+          "belt"
+        ],
+        "colorFamily": "black",
+        "hardware": "silver",
+        "tags": []
+      },
+      "origin": "your-looks",
+      "options": [
+        {
+          "id": "opt-belt-1",
+          "role": "exact",
+          "name": "Slim dress belt, 30 mm",
+          "store": "Sample Store",
+          "url": "https://sample-store.example/p/slim-belt",
+          "price": 45,
+          "source": "you",
+          "addedOn": "2026-01-04",
+          "tryOnFirst": true
+        }
+      ],
+      "state": "open",
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "why": "Nothing holds up a tucked-in top yet.",
+      "wearsPerWeek": 4
+    },
+    {
+      "id": "wish-trainers",
+      "name": "White trainers",
+      "spec": {
+        "slots": [
+          "shoes"
+        ],
+        "colorFamily": "white",
+        "depth": "light",
+        "dressLevel": 1,
+        "tags": [
+          "sneaker"
+        ]
+      },
+      "origin": "your-looks",
+      "options": [
+        {
+          "id": "opt-trainers-1",
+          "role": "exact",
+          "name": "Court Classic sneaker",
+          "store": "Sample Store",
+          "url": "https://sample-store.example/p/court-classic",
+          "price": 120,
+          "source": "you",
+          "addedOn": "2026-01-04",
+          "check": {
+            "on": "2026-01-04",
+            "by": "you",
+            "price": 120,
+            "stock": "in-stock",
+            "size": "9",
+            "pickup": "today"
+          }
+        },
+        {
+          "id": "opt-trainers-2",
+          "role": "lookalike",
+          "name": "Everyday court sneaker",
+          "store": "Another Shop",
+          "price": 60,
+          "givesUp": "Coated canvas, not leather.",
+          "source": "you",
+          "addedOn": "2026-01-04"
+        }
+      ],
+      "state": "open",
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "lookFor": "Plain white, low, no big logo.",
+      "why": "Nothing in the wardrobe is casual.",
+      "wearsPerWeek": 3
+    },
+    {
+      "id": "wish-shirt",
+      "name": "White shirt",
+      "spec": {
+        "slots": [
+          "under-layer",
+          "main-top"
+        ],
+        "colorFamily": "white",
+        "depth": "light",
+        "neckline": "shirt-collar",
+        "dressLevel": 2,
+        "tags": []
+      },
+      "origin": "your-looks",
+      "options": [],
+      "state": "open",
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "sizeLabel": "Tops",
+      "holdUntil": "2026-03-01",
+      "holdReason": "Shirts wait for spring."
+    }
+  ]
 }

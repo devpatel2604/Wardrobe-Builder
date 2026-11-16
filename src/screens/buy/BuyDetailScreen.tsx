@@ -84,7 +84,12 @@ function OptionCard({ item, option, profile, today }: { item: WishItem; option: 
       )}
       {option.note && <p className="muted">{option.note}</p>}
       <p className={line.weak ? 'muted buy-weak' : 'muted'}>{line.text}</p>
-      {option.check?.note && <p className="muted">You noted: {option.check.note}</p>}
+      {option.check?.note && (
+        <p className="muted">
+          {option.check.by === 'you' ? 'You noted: ' : 'The research noted: '}
+          {option.check.note}
+        </p>
+      )}
 
       {mode === 'view' && (
         <div className="row">

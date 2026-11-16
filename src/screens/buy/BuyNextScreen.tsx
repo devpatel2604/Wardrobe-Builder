@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { reopenWish } from '../../data/wishlistRepo';
 import type { RankedWish } from '../../domain/buyNext/score';
 import type { WishItem, WishOption } from '../../domain/buyNext/types';
-import { checkLine, money, monthDay, priceText, standingOf, type WishStanding } from '../../domain/buyNext/wishes';
+import { checkLine, isUnavailable, money, monthDay, priceText, standingOf, type WishStanding } from '../../domain/buyNext/wishes';
 import { now } from '../../domain/clock';
 import { dateKey } from '../../domain/dates';
 import { swatchOf } from '../../domain/options';
@@ -52,7 +52,11 @@ function RankedCard({ ranked, today, total, unpriced }: { ranked: RankedWish; to
   const { item } = ranked;
   const standing = standingOf(item);
   const pick = standing.pick;
-  const lookalike = item.options.find((o) => o.role === 'lookalike' && o !== pick);
+  // One exact item and one lookalike: the one to buy where there is one, else the first, so a sold-out exact item still shows.
+  const exact = pick?.role === 'exact' ? pick : item.options.find((o) => o.role === 'exact');
+  const lookalikes = item.options.filter((o) => o.role === 'lookalike');
+  const lookalike = pick?.role === 'lookalike' ? pick : (lookalikes.find((o) => !isUnavailable(o)) ?? lookalikes[0]);
+  const shown = [exact, lookalike].filter((o): o is WishOption => o !== undefined);
   const reason = ranked.reasons[0];
   return (
     <li>
@@ -71,9 +75,10 @@ function RankedCard({ ranked, today, total, unpriced }: { ranked: RankedWish; to
           </p>
         )}
         {standing.text && <p className="buy-standing">{standing.text}</p>}
-        {pick && <OptionLine option={pick} today={today} />}
-        {lookalike && <OptionLine option={lookalike} today={today} />}
-        {!pick && item.options.length === 0 && <p className="muted">No product under it yet. Open it to search your stores.</p>}
+        {shown.map((option) => (
+          <OptionLine key={option.id} option={option} today={today} />
+        ))}
+        {item.options.length === 0 && <p className="muted">Open it to search your stores.</p>}
         <p className="muted buy-total">
           Running total so far: {money(total)}
           {unpriced > 0 ? ` (${unpriced} above ${unpriced === 1 ? 'has' : 'have'} no price yet)` : ''}

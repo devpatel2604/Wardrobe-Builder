@@ -1983,6 +1983,10 @@ a.notice {
   font-size: 18px;
   line-height: 1.25;
   margin: 0;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
 }
 
 .buy-rank {

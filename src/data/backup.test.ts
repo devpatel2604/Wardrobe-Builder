@@ -95,7 +95,14 @@ describe('parseBackup', () => {
 
   it('accepts the example file in the repository, which matches the test sample', () => {
     const text = readFileSync(resolve(__dirname, '../../examples/sample-setup.json'), 'utf8');
-    expect(parseBackup(text)).toEqual(valid());
+    const { wishlist, ...rest } = parseBackup(text);
+    expect(rest).toEqual(valid());
+    // The example also carries a short made-up buy-next list, so the Buy next screen has something to show.
+    expect(wishlist?.map((item) => [item.name, item.state, item.options.length])).toEqual([
+      ['Black belt', 'open', 1],
+      ['White trainers', 'open', 2],
+      ['White shirt', 'open', 0],
+    ]);
   });
 
   it('accepts a valid file', () => {

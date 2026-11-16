@@ -1,6 +1,6 @@
 # Wardrobe Builder
 
-A private wardrobe app for one person. It runs as a web app that is saved to the iPhone Home Screen. So far it has the profile, the wardrobe catalog, the color photo test, backup, and outfits for today and the week.
+A private wardrobe app for one person. It runs as a web app that is saved to the iPhone Home Screen. So far it has the profile, the wardrobe catalog, the color photo test, backup, outfits for today and the week, saved looks, and the buy-next list.
 
 ## What works today
 
@@ -16,9 +16,10 @@ A private wardrobe app for one person. It runs as a web app that is saved to the
 - **Automatic backup.** About once a day the app encrypts a copy on the phone and uploads it to the small server, which cannot read it. A new phone restores it with the app key and the recovery code.
 - **Evening reminder.** On the evening before an office day the small server sends one alert with the next morning's forecast.
 - **Looks.** Save an outfit you like from a post. Paste the link and the post plays in Instagram's own player. Add your own screenshots, and the pieces are listed by slot, by hand or read from the screenshots by an AI model. Once you have checked them, the app shows your version of the look after your rules, what you already own for it and what is missing. See "Saved looks" below.
+- **Buy next.** A list of pieces you need, each described as a spec and not as a product, ranked by the outfits it would add. Each piece shows why it is there, the outfits it unlocks, an exact item and a cheaper lookalike with what the lookalike gives up, and when each price and stock was last looked at. "Check at the store" opens the store's own page and you record what you saw. "Bought it" moves the piece to the wardrobe and queues a fit check. "Find options" asks an AI model for leads from a web search, marked as not checked. It is switched off until the server has an AI key. See "Buy next" below.
 - **Offline.** After the first visit the app opens with no connection. The server is only needed for backup and reminders.
 
-Not built yet: the buy-next list and the "what I've learned" page.
+Not built yet: the "what I've learned" page.
 
 ## No personal data in this repository
 
@@ -59,6 +60,7 @@ To try it, open the local address, choose "Load a setup file or backup" and pick
 src/
   domain/     types, the lists of choices, and the rule checks (no storage, no UI)
     outfits/  how outfits are picked: build, filter, score, pick, explain
+    buyNext/  the buy-next list: the score, the state of a line, the fit check, AI leads
   data/       the database and everything that reads or writes it
   screens/    one file per screen (the color test's screens are in screens/colorTest)
   ui/         shared controls and the camera helper
@@ -108,11 +110,65 @@ The Looks tab (`#/inspiration`) keeps outfits worth copying. The rules are in `s
 - **The match** compares each piece of the version with what is owned, by slot, color group and kind of garment. A piece is owned, close (with what differs, and a "Mine is close enough" button) or missing. Tops, trousers, shoes and layers count as pieces away. Belts, watches and the like are finishing touches. A watch is matched on its metal.
 - **A confirmed look is an outfit recipe.** Today and Week credit an outfit that matches it, the same way as the recipes in the profile (`formulasWithLooks`). Nothing is written into the profile.
 - **Sharing in.** A link or a screenshot in the inbox opens `#/inspiration/new?inbox=<id>` or `#/inspiration/attach?inbox=<id>` and leaves the inbox once it is part of a look.
-- **The buy list plugs in.** `src/data/lookWishes.ts` sends missing pieces to a buy list given to `connectBuyList`. Until the buy list is built, those buttons are left out.
+- **The buy list plugs in.** `src/data/lookWishes.ts` sends missing pieces to the buy list that `src/data/wishlistRepo.ts` hands to `connectBuyList`. A piece that an open line already asks for joins that line. See "Buy next" below.
+
+## Buy next
+
+The Buy next tab (`#/buy`) answers "which piece should I buy next?". The score is in `src/domain/buyNext`, the storage in `src/data/wishlistRepo.ts`, and the screens in `src/screens/buy`.
+
+**A line is a spec, not a product.** "Cream pleated trousers in a winter cloth" carries the same tags as a piece in the wardrobe. Products hang off it: the exact item and cheaper lookalikes, each with what it gives up.
+
+### The score
+
+The score puts every open line in the wardrobe on paper, builds every outfit that passes the same filters as Today and Week, and notes which list pieces each outfit needs (`paper.ts`). It then picks the best piece, counts it as bought, and scores the rest again, so the list reads as "buy in this order" (`score.ts`).
+
+| Part | What it measures | Evidence label |
+| --- | --- | --- |
+| Outfits unlocked | New outfits per occasion, on dry and wet days, for the three months ahead. Each occasion counts by how often it comes up in the week, a wet day counts a quarter, and an occasion with few outfits counts more than a full one (growth is measured on a log scale) | Working rule |
+| With the next pieces | A share of what it adds together with the one or two list pieces it works best with | Working rule |
+| Saved looks | A look it finishes counts in full. A look that needs two list pieces splits the credit. A look the list cannot finish counts nothing | Your choice |
+| A basic you lack | A first belt, or a first coat when the months ahead are cold. These add no outfits of their own, so they are scored by how many existing outfits they go with | Convention |
+| Suits you | Outfits of a top in a color the palette is unsure of near the face count for less | The palette entry's own label |
+| Beyond your looks | A piece that is not from the saved looks counts three quarters. A basic is exempt | Your choice |
+| Already covered | Something owned in the same slot, color group and kind halves it, or takes a quarter off when the dress level differs | Working rule |
+| Price | A small lift for a cheaper piece, never more than a tenth | Working rule |
+
+A line can also **wait**: until a day ("white sneakers wait for March") or until another line has been bought and worn three times ("a second shirt, after the first proves itself"). A line that breaks a hard rule is never scored. When the best line scores under the bar, the screen says "Nothing worth buying right now".
+
+**The weights are tuned, not derived.** They are in `BUY_WEIGHTS`. They were set so that the owner's own data comes out in the order of the hand-made list of ten from the research. That check runs only when it is pointed at his setup file, which is never in this repository:
+
+```
+SETUP_FILE=/path/to/setup.json SETUP_DATE=2026-11-16 npx vitest run src/domain/buyNext/score.test.ts
+```
+
+How firm the order is: it holds for every date tried over the two months after it was set. Changing any single weight by a tenth or a fifth leaves places 1, 2, 3, 6 and 9 where they are. Three neighbouring pairs are close and can swap: places 4 and 5, places 7 and 8, and place 10 with the first piece below it. So the order near the top is the score's own, and the order within those pairs leans on the tuning. Feedback from real purchases should replace the tuning over time.
+
+### Checking a product
+
+Every statement about a store carries its date and who looked: "Price seen Nov 15 by the research, not by you, size not checked". A check older than a week is shown as old. Nothing checks a store in the background.
+
+- **Check at the store** opens the product's own page in the browser. Back in the app you record the price, the stock in your size and pickup at your store. It is saved with today's date and replaces the earlier look.
+- **Search links** open each of the owner's stores' own search page for the piece (`searchLinks` in `wishes.ts`). The addresses are working values. A store without a known search page gets a plain web search.
+- **States.** Besides "buy": wait (sold out in your size), try on first, exact item no longer made (the lookalikes are shown), and nothing worth buying.
+
+### Find options
+
+"Find options" sends one line to the server's `leads` request (`server/ai/leads.ts`). The AI provider runs its own web search and the model answers with pairs: an exact item and a cheaper lookalike.
+
+- The model has no tool that opens a page, and neither the server nor the phone loads a store's site. A lead is what a search result said, so it is stored as "AI lead, not checked" until the owner taps through.
+- The server keeps a lead only when its link is among the search results the provider returned (`cleanLeads` in `leads.ts`). A link the model made up or misremembered is dropped and counted. A lookalike that is not cheaper is dropped too.
+- What leaves the phone: the name of the piece, what to look for, the size, the store names and the rules. Nothing else about the owner.
+- With no AI key the button answers "AI leads are switched off" and the search links still work. This path has only been tested against stand-ins. It has not yet run against the real provider.
+
+### Bought it and the fit check
+
+"Bought it" creates the wardrobe piece from the spec, with its tags still to be confirmed against the care label, and the list is ranked again. The fit check (`fitCheck.ts`) then asks up to five questions for the kind of piece: shoulders, length and body for a top, rise and length for trousers, and hardware and cloth for everything. "A tailor can fix it" is offered only where a tailor can. The answers point to keep, tailor or return, and the owner decides. A return takes the piece out of the wardrobe, puts the line back on the list and notes the product that went back.
+
+The app never buys anything and never fills a cart.
 
 ## Data
 
-Everything lives in nine tables in the browser's IndexedDB.
+Everything lives in ten tables in the browser's IndexedDB.
 
 | Table | Holds |
 | --- | --- |
@@ -125,6 +181,7 @@ Everything lives in nine tables in the browser's IndexedDB.
 | `outfitLog` | One row per answer to a suggested outfit: worn (with a rating) or passed over (with a reason) |
 | `inbox` | Things waiting to be added: a photo, a store page, a link or a screenshot, with the tags an AI model proposed. Never in a backup |
 | `looks` | One row per saved look: its link, creator, the pieces by slot, the owner's choices, and when the pieces were checked. Its screenshots are in `photos` under `look:<id>` |
+| `wishlist` | One row per needed piece: its spec, why it is there, the products found for it with their dated store checks, and once bought, the purchase and the fit check |
 
 The types are in `src/domain/types.ts`.
 
@@ -139,9 +196,9 @@ Export and setup files share one JSON format (`src/data/backup.ts`).
 | `kind` | Made by | Loading it |
 | --- | --- | --- |
 | `backup` | Settings, "Make a backup file" | Replaces everything on the phone, except photos of the owner, which stay |
-| `setup` | Written outside the app | Replaces the profile and adds pieces that are not there yet. Photos, existing pieces, day plans and the outfit log are kept, and saved color test results are written back onto the new palette |
+| `setup` | Written outside the app | Replaces the profile and adds pieces and buy-next lines that are not there yet. Photos, existing pieces, existing lines, day plans and the outfit log are kept, and saved color test results are written back onto the new palette |
 
-The format is at version 2, which added `colorTest`. Version 1 files still load. `dayPlans` and `outfitLog` are optional lists, so files made before the Today and Week screens load too.
+The format is at version 2, which added `colorTest`. Version 1 files still load. `dayPlans`, `outfitLog`, `looks` and `wishlist` are optional lists, so files made before those screens load too.
 
 ## The color photo test
 
@@ -241,8 +298,9 @@ Every route except `/api/health` needs the header `Authorization: Bearer <app ke
 | `piece-photo` | One photo of a piece, and optionally one of its label | Proposed tags for the piece |
 | `piece-page` | A store page's text as copied by the phone, a screenshot of it, or both | Proposed tags, with brand, cloth and price |
 | `look` | One or two of the owner's screenshots of an outfit he saved | The pieces of the outfit by slot, and the account name if the screenshot shows one |
+| `leads` | One needed piece as words: its name, what to look for, the size, the owner's store names and rules | Up to four pairs of links from the provider's own web search: an exact item and a cheaper lookalike. Only links the search itself returned are passed on |
 
-Each call is counted before it is made, per kind and per day (UTC), in the `ai_usage` table. Over the limit, the server refuses without calling the provider. The defaults are 60 a day for each piece kind, 40 for `look`, and 120 a day in all. A Cloudflare variable `AI_DAILY_LIMIT` changes the total. `AI_MODELS` (for example `piece-photo=claude-sonnet-5-5`) answers a kind with another model, to compare models without a code change. Nothing that passes through is stored or logged: no photo, no page text, no answer.
+Each call is counted before it is made, per kind and per day (UTC), in the `ai_usage` table. Over the limit, the server refuses without calling the provider. The defaults are 60 a day for each piece kind, 40 for `look`, 5 for `leads` (a web search costs far more than reading a photo), and 120 a day in all. A Cloudflare variable `AI_DAILY_LIMIT` changes the total. `AI_MODELS` (for example `piece-photo=claude-sonnet-5-5`) answers a kind with another model, to compare models without a code change. Nothing that passes through is stored or logged: no photo, no page text, no answer.
 
 To add a kind, write a file in `server/ai` that exports an `AiKind` (see `types.ts`) and add it to the list in `kinds.ts`. A kind's `schema` makes the model answer in exactly that JSON shape. The server never loads a store's page: page text is collected by the owner's own phone.
 

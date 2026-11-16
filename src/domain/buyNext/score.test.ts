@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { parseBackup } from '../../data/backup';
 import { sampleRules } from '../../test/fixtures';
 import { sampleWishlist, wantBelt, wantBoots, wantCoat, wantCream, wantLeatherJacket, wantPolo, wantShirt, wantTrainers, wish } from '../../test/buyFixtures';
 import { crew, piece, polo, samplePalette, savedLook, shirt, smallWardrobe, stretchLook } from '../../test/outfitFixtures';
@@ -225,7 +226,8 @@ describe('the buy-next score', () => {
  */
 describe.skipIf(!process.env.SETUP_FILE)('the owner\'s own list', () => {
   it('comes out in the order of the hand-made list', () => {
-    const file = JSON.parse(readFileSync(process.env.SETUP_FILE!, 'utf8')) as { profile: Profile; pieces: Piece[]; wishlist: WishItem[] };
+    // The file has to be one the app will load.
+    const file = parseBackup(readFileSync(process.env.SETUP_FILE!, 'utf8')) as { profile: Profile; pieces: Piece[]; wishlist: WishItem[] };
     const ranking = rankWishlist({
       items: file.wishlist,
       pieces: file.pieces,
