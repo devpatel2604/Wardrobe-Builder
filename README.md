@@ -146,7 +146,7 @@ The app is hosted on Cloudflare as static files (`wrangler.jsonc`). Cloudflare b
 | Deploy command | `npx wrangler deploy` |
 | Node version | 22, from `.nvmrc` |
 
-`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it allows is `https://api.weather.gov`, for the forecast. Any other feature that calls an outside service (the small server, an Instagram iframe) has to add that address there, or the browser will block it.
+`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it allows is `https://api.weather.gov`, for the forecast. The permissions policy lets only the app's own address ask for the phone's location, which the Weather card in Settings uses, and turns the microphone and payments off. Any other feature that calls an outside service (the small server, an Instagram iframe) has to add that address there, or the browser will block it.
 
 To serve the build locally the way Cloudflare does, headers included:
 
