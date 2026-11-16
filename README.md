@@ -43,6 +43,7 @@ To try it, open the local address, choose "Load a setup file or backup" and pick
 | Photos | Shrunk on the phone to 1600 pixels plus a thumbnail, stored as bytes | Browser storage is limited, and a camera photo is several megabytes |
 | Install and offline | Web app manifest and a service worker (vite-plugin-pwa) | Opens from the Home Screen like an app |
 | Routing | Hash routes and relative asset paths | The build runs from any static host and any sub-path |
+| Hosting | Cloudflare, static files only for now | Free, and it can run the small server later |
 | Tests | Vitest, Testing Library, fake-indexeddb | Screens are tested against a real (in-memory) database |
 
 ```
@@ -82,6 +83,28 @@ Export and setup files share one JSON format (`src/data/backup.ts`).
 | --- | --- | --- |
 | `backup` | Settings, "Make a backup file" | Replaces everything on the phone |
 | `setup` | Written outside the app | Replaces the profile and adds pieces that are not there yet. Photos and existing pieces are kept |
+
+## Hosting
+
+The app is hosted on Cloudflare as static files (`wrangler.jsonc`). Cloudflare builds it from this repository on each push.
+
+| Setting in Cloudflare | Value |
+| --- | --- |
+| Worker name | `wardrobe-builder` (must match `name` in `wrangler.jsonc`) |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Node version | 22, from `.nvmrc` |
+
+`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. A feature that calls an outside service (weather, the small server, an Instagram iframe) has to add that address there, or the browser will block it.
+
+To serve the build locally the way Cloudflare does, headers included:
+
+```sh
+npm run build
+npx wrangler dev
+```
+
+Browser storage belongs to one web address. Install the app to the Home Screen from the main address, not from a preview address, or its data will not follow.
 
 ## iPhone notes
 
