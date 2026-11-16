@@ -9,6 +9,9 @@ import { listPhotos, listPieces } from '../data/piecesRepo';
 import { getProfile } from '../data/profileRepo';
 import { fakeImage, sampleSetupFile } from '../test/fixtures';
 
+// A Tuesday morning, which is an office day in the sample profile.
+vi.mock('../domain/clock', () => ({ now: () => new Date('2026-01-06T09:00:00') }));
+
 // The real one needs a canvas, which the test browser does not have.
 vi.mock('../data/images', async (original) => ({
   ...(await original<typeof import('../data/images')>()),
@@ -23,7 +26,7 @@ function renderApp(path = '/') {
   );
 }
 
-async function renderLoadedApp(path = '/') {
+async function renderLoadedApp(path = '/wardrobe') {
   await importBackup(sampleSetupFile());
   return renderApp(path);
 }
@@ -41,10 +44,12 @@ describe('first run', () => {
     expect(await db.pieces.count()).toBe(0);
   });
 
-  it('loads a setup file and opens the wardrobe', async () => {
+  it('loads a setup file and opens on today, with the wardrobe one tap away', async () => {
     const user = userEvent.setup();
     renderApp();
     await user.upload(await screen.findByLabelText('Choose a setup file or backup'), setupFile());
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Wardrobe' }));
     expect(await screen.findByRole('heading', { name: 'Wardrobe' })).toBeInTheDocument();
     expect(screen.getByText('Navy zip cardigan')).toBeInTheDocument();
     expect(screen.getByText(/5 pieces you own/)).toBeInTheDocument();
@@ -62,8 +67,10 @@ describe('first run', () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(await screen.findByRole('button', { name: 'Start with an empty profile' }));
-    expect(await screen.findByRole('heading', { name: 'Wardrobe' })).toBeInTheDocument();
-    expect(screen.getByText('Nothing here yet.')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByText(/Your wardrobe is empty/)).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Wardrobe' }));
+    expect(await screen.findByText('Nothing here yet.')).toBeInTheDocument();
   });
 });
 

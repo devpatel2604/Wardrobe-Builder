@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
+import type { DayPlan, OutfitLogEntry } from '../domain/outfits/records';
 import type { Photo, Piece, Profile } from '../domain/types';
 
 export interface MetaRow {
@@ -16,6 +17,8 @@ export class WardrobeDb extends Dexie {
   pieces!: EntityTable<Piece, 'id'>;
   photos!: EntityTable<Photo, 'id'>;
   meta!: Table<MetaRow, string>;
+  dayPlans!: EntityTable<DayPlan, 'date'>;
+  outfitLog!: EntityTable<OutfitLogEntry, 'id'>;
 
   constructor(name = 'wardrobe-builder') {
     super(name);
@@ -24,6 +27,11 @@ export class WardrobeDb extends Dexie {
       pieces: 'id, status, *slots, updatedAt',
       photos: 'id, pieceId, kind',
       meta: 'key',
+    });
+    // Today and Week: what each day is for, and which outfits were worn or passed over.
+    this.version(2).stores({
+      dayPlans: 'date',
+      outfitLog: 'id, date',
     });
   }
 }

@@ -2,9 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
 import { backupFileName, exportBackup } from '../data/backup';
 import { db } from '../data/db';
+import { getProfile } from '../data/profileRepo';
 import { eraseEverything, isInstalled, requestPersistentStorage, type StorageStatus } from '../data/setup';
 import { Card, PageHeader } from '../ui/controls';
 import { count, describeFile, useFileImport } from '../ui/useFileImport';
+import { WeatherSetup } from '../ui/WeatherSetup';
 
 const STORAGE_TEXT: Record<StorageStatus, string> = {
   protected: 'Protected. The browser has agreed not to clear this app\'s data on its own.',
@@ -36,6 +38,7 @@ async function saveFile(name: string, text: string): Promise<void> {
 
 export function SettingsScreen() {
   const counts = useLiveQuery(async () => ({ pieces: await db.pieces.count(), photos: await db.photos.count() }), []);
+  const profile = useLiveQuery(() => getProfile(), []);
   const [storage, setStorage] = useState<StorageStatus>();
   const [exportNote, setExportNote] = useState<string>();
   const [confirmingErase, setConfirmingErase] = useState(false);
@@ -89,8 +92,14 @@ export function SettingsScreen() {
         </dl>
       </Card>
 
+      {profile && (
+        <Card title="Weather">
+          <WeatherSetup key={`${profile.home.point?.lat},${profile.home.point?.lon}`} profile={profile} />
+        </Card>
+      )}
+
       <Card title="Back up">
-        <p className="hint">Saves your profile, pieces and clothing photos to one file that you keep. Photos of you are never included.</p>
+        <p className="hint">Saves your profile, pieces, clothing photos, day plans and outfit log to one file that you keep. Photos of you are never included.</p>
         <button type="button" className="btn btn-primary" onClick={() => void onExport()}>
           Make a backup file
         </button>

@@ -1,16 +1,19 @@
 # Wardrobe Builder
 
-A private wardrobe app for one person. It runs as a web app that is saved to the iPhone Home Screen. This is the foundation: the profile, the wardrobe catalog, and backup.
+A private wardrobe app for one person. It runs as a web app that is saved to the iPhone Home Screen. So far it has the profile, the wardrobe catalog, backup, and outfits for today and the week.
 
 ## What works today
 
 - **Profile.** Build and coloring, sizes, the week, stores, rules grouped by kind (hard rules, defaults, soft preferences, open tests) and a starting color palette. Every section except the palette can be edited.
 - **Wardrobe.** Add, edit and delete pieces. Each piece has photos, the slot it fills in an outfit, color, texture, neckline, fit, hem, dress level, cloth, hardware color, warmth, and free tags. Pieces you own are kept apart from pieces you are thinking about.
 - **Rule checks.** A piece is checked against the hard rules in the profile while you fill in the form: leather clothing, gold or brass hardware, boxy or long shapes.
+- **Today.** One outfit for the occasion and the weather, two alternates, and the reasons. "Wore it", "Swap a piece", "Not today" with an optional reason, and "Build around a piece". From 6 pm it opens on tomorrow when tomorrow has something planned.
+- **Week.** The next seven days: the office on office days plus any occasion you add, with no main top repeated where the wardrobe allows it. A coverage grid counts the outfits you can make for each occasion on a dry day and on a wet one, and says what kind of piece would fill an empty cell.
+- **Weather.** The hourly forecast from the US National Weather Service for the hours of each occasion. With no forecast you set the temperature and rain by hand.
 - **Backup.** Export everything to one file, restore it, or erase the phone's copy.
 - **Offline.** After the first visit the app opens with no connection.
 
-Not built yet: the color photo test, outfits for today and the week, the buy-next list, saved inspiration, photo cut-outs, AI tagging, and the server (share-menu inbox, AI proxy, reminders, automatic backup).
+Not built yet: the color photo test, the buy-next list, the "what I've learned" page, saved inspiration, photo cut-outs, AI tagging, and the server (share-menu inbox, AI proxy, reminders, automatic backup).
 
 ## No personal data in this repository
 
@@ -48,6 +51,7 @@ To try it, open the local address, choose "Load a setup file or backup" and pick
 ```
 src/
   domain/     types, the lists of choices, and the rule checks (no storage, no UI)
+    outfits/  how outfits are picked: build, filter, score, pick, explain
   data/       the database and everything that reads or writes it
   screens/    one file per screen
   ui/         shared controls
@@ -57,16 +61,44 @@ examples/     a made-up setup file
 
 Screens never touch the database directly. They call the modules in `src/data`, so a server can be added behind the same calls later.
 
+## How an outfit is picked
+
+Rules pick the outfit on the phone. No AI model picks an outfit or writes a reason. The method is in `src/domain/outfits` and follows the design brief, section 7.
+
+| Step | File | What it does |
+| --- | --- | --- |
+| Build | `build.ts` | Every combination of main top, under-layer, trousers and shoes, with an overshirt where it fits. Pieces that break a hard rule never get in |
+| Filter | `filters.ts` | Removes a combination when its pieces are more than one dress level apart, when its average level is outside the occasion's range, when it has more than three colors or more than one strong one, when it clashes, or when it does not suit the forecast |
+| Score | `score.ts` | Points for matching a saved look, colors near the face (from the palette), one rough texture, a short top over fuller trousers, fit to the occasion, rotation and history. The weights are in one table, `WEIGHTS` |
+| Pick | `engine.ts` | The best outfit from the saved looks and the rules is the main pick. Two alternates differ by more than the shoes. A look from beyond the saved looks is only ever an alternate, labeled "Stretch" |
+| Explain | `engine.ts` | Each reason line is the sentence of a filter or score part that fired, with its evidence label |
+
+Things to know before changing it:
+
+- **Occasion ranges, temperature lines and weights are working values.** They come from the Phase 1 reports, not from a source, and every reason built on them carries the "Working rule" label. Office is an average dress level of 1.6 to 2.7, casual 1.7 or less, going out 1.6 to 2.7 and never a bare tee, a date 2.3 or more. A coat is wanted under 50°F, short sleeves and bare tees need 60°F, and hours count as wet from a 40% chance of rain or snow.
+- **Saved looks are data.** A look is a `Formula` in the profile (`profile.formulas`), loaded from the setup file like the rest of the profile. A formula carries its source, and names a creator's post only when `postSeen` is true and it has a link. Otherwise the app says "in the style of".
+- **When the weather rules out everything**, the closest outfit is shown with what it gives up, and the count in the coverage grid stays at zero.
+- **A coat and a belt sit on top of an outfit.** They do not change the counts. With no coat on a cold day the app says so.
+- **Shoes pass a wet day only when "Fine in rain or snow" is ticked on the piece.**
+- **Swapping changes the top, trousers or shoes.** The under-layer follows the top.
+- **Not built yet:** learning from the "not today" reasons, the in-season bonus (it waits on the trend list) and fragrance pairing. The answers are stored, so the learning page can use them later.
+
+### Weather
+
+`src/data/weatherRepo.ts` calls `api.weather.gov` twice: the map point gives the address of its hourly forecast, then the forecast. The only thing sent is the point in `profile.home.point`, rounded to two decimals. The last forecast is kept in the `meta` table, so the app has one offline, and it is asked for again after two hours. This has not been tried on a real iPhone yet. If the weather service does not answer a web page directly, add the app's own server as a second source in `fetchHours`.
+
 ## Data
 
-Everything lives in four tables in the browser's IndexedDB.
+Everything lives in six tables in the browser's IndexedDB.
 
 | Table | Holds |
 | --- | --- |
 | `profile` | One document: body, coloring, sizes, week, stores, rules, palette |
 | `pieces` | One row per piece, with its tags |
 | `photos` | Photo bytes and a thumbnail, linked to a piece, each with a privacy class |
-| `meta` | Saved settings as key and value. Never exported |
+| `meta` | Saved settings and the last forecast, as key and value. Never exported |
+| `dayPlans` | One row per day you changed: its occasions, and the weather if you set it by hand |
+| `outfitLog` | One row per answer to a suggested outfit: worn (with a rating) or passed over (with a reason) |
 
 The types are in `src/domain/types.ts`.
 
@@ -81,7 +113,7 @@ Export and setup files share one JSON format (`src/data/backup.ts`).
 | `kind` | Made by | Loading it |
 | --- | --- | --- |
 | `backup` | Settings, "Make a backup file" | Replaces everything on the phone |
-| `setup` | Written outside the app | Replaces the profile and adds pieces that are not there yet. Photos and existing pieces are kept |
+| `setup` | Written outside the app | Replaces the profile and adds pieces that are not there yet. Photos, existing pieces, day plans and the outfit log are kept |
 
 ## iPhone notes
 

@@ -13,8 +13,8 @@ export async function startEmpty(): Promise<void> {
 
 /** Deletes everything on this device, including saved settings. */
 export async function eraseEverything(): Promise<void> {
-  await db.transaction('rw', db.profile, db.pieces, db.photos, db.meta, async () => {
-    await Promise.all([db.profile.clear(), db.pieces.clear(), db.photos.clear(), db.meta.clear()]);
+  await db.transaction('rw', [db.profile, db.pieces, db.photos, db.meta, db.dayPlans, db.outfitLog], async () => {
+    await Promise.all([db.profile.clear(), db.pieces.clear(), db.photos.clear(), db.meta.clear(), db.dayPlans.clear(), db.outfitLog.clear()]);
   });
 }
 

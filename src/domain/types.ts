@@ -90,12 +90,19 @@ export interface Profile {
   home: {
     town: string;
     pickup: string;
+    /**
+     * A map point for the town, rounded to two decimals (about half a mile).
+     * Used only to ask for the weather forecast.
+     */
+    point?: MapPoint;
   };
   stores: StoreEntry[];
   budget: string;
   scentNote: string;
   rules: Rule[];
   palette: PaletteEntry[];
+  /** Outfit recipes with their source. Loaded from the setup file, never part of the code. */
+  formulas?: Formula[];
 }
 
 /** A place in an outfit that one piece fills. */
@@ -233,4 +240,48 @@ export function emptyProfile(now: string = new Date().toISOString()): Profile {
     rules: [],
     palette: [],
   };
+}
+
+export interface MapPoint {
+  lat: number;
+  lon: number;
+}
+
+/** Where an outfit idea comes from (design brief, section 7.3). */
+export type LookSource =
+  | 'your-looks' // posts the owner saved and creators they follow
+  | 'suits-you' // built from the coloring and fit findings
+  | 'in-season' // a trend the owner approved
+  | 'similar-creators' // creators found by the research
+  | 'test'; // an open color question
+
+/** What a piece must be to fill a slot of a formula. Every part given must hold. */
+export interface PieceMatcher {
+  colorFamilies?: ColorFamily[];
+  depths?: Depth[];
+  necklines?: Neckline[];
+  texture?: Texture;
+  /** Every tag listed must be on the piece. */
+  tags?: string[];
+}
+
+export type FormulaSlot = 'main-top' | 'under-layer' | 'trousers' | 'shoes' | 'outer-layer';
+
+/**
+ * A repeatable outfit recipe, such as "dark zip knit over a white layer,
+ * pleated trousers, black loafers". An outfit matches when every slot listed
+ * matches. A slot set to null must be empty. A slot left out is not checked.
+ */
+export interface Formula {
+  id: string;
+  name: string;
+  source: LookSource;
+  /** Who the look comes from, such as a creator's name. */
+  credit?: string;
+  /** True only when the post has been seen and can be linked. Otherwise the look is "in the style of". */
+  postSeen?: boolean;
+  link?: string;
+  /** For a test: the question it answers. */
+  note?: string;
+  slots: Partial<Record<FormulaSlot, PieceMatcher | null>>;
 }
