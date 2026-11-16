@@ -1,0 +1,217 @@
+{
+  "app": "wardrobe-builder",
+  "formatVersion": 1,
+  "kind": "setup",
+  "exportedAt": "2026-01-05T09:00:00.000Z",
+  "includesPrivatePhotos": false,
+  "profile": {
+    "id": "me",
+    "profileFileDate": "2026-01-04",
+    "updatedAt": "2026-01-05T09:00:00.000Z",
+    "body": {
+      "height": "5'10\"",
+      "weight": "160 lb",
+      "build": "Average"
+    },
+    "coloring": {
+      "skin": "Light olive.",
+      "hair": "Dark brown.",
+      "glasses": "Black round frames.",
+      "faceShape": "Not assessed."
+    },
+    "sizes": [
+      {
+        "id": "s-tops",
+        "label": "Tops",
+        "value": "M"
+      },
+      {
+        "id": "s-pants",
+        "label": "Pants",
+        "value": "32 × 32"
+      }
+    ],
+    "week": {
+      "officeDays": [
+        2,
+        4
+      ],
+      "officeHours": "9 am to 5 pm",
+      "dressCode": "Smart casual",
+      "otherOccasions": "Dinners"
+    },
+    "home": {
+      "town": "Springfield",
+      "pickup": "Likes in-store pickup."
+    },
+    "stores": [
+      {
+        "id": "st-1",
+        "name": "Sample Store",
+        "note": "Has a rewards card"
+      },
+      {
+        "id": "st-2",
+        "name": "Another Shop"
+      }
+    ],
+    "budget": "No cap set.",
+    "scentNote": "Likes citrus scents.",
+    "rules": [
+      {
+        "id": "r-leather",
+        "kind": "hard",
+        "text": "No leather clothing and no leather watch straps.",
+        "why": "Shoes and belts are fine.",
+        "evidence": "your-rule",
+        "check": "no-leather-clothing"
+      },
+      {
+        "id": "r-silver",
+        "kind": "hard",
+        "text": "Silver over gold.",
+        "evidence": "your-rule",
+        "check": "silver-over-gold"
+      },
+      {
+        "id": "r-shape",
+        "kind": "hard",
+        "text": "Nothing boxy or long.",
+        "evidence": "your-rule",
+        "check": "nothing-boxy-or-long"
+      },
+      {
+        "id": "r-coat",
+        "kind": "hard",
+        "text": "A winter coat may reach mid-thigh.",
+        "evidence": "your-choice",
+        "check": "coat-to-mid-thigh"
+      },
+      {
+        "id": "r-hem",
+        "kind": "default",
+        "text": "Top hems end between the belt and mid-fly.",
+        "evidence": "convention"
+      },
+      {
+        "id": "r-knits",
+        "kind": "soft",
+        "text": "Textured knits.",
+        "evidence": "convention"
+      },
+      {
+        "id": "r-black",
+        "kind": "open-test",
+        "text": "Black near the face.",
+        "evidence": "working-rule"
+      }
+    ],
+    "palette": [
+      {
+        "id": "p-navy",
+        "color": "Navy",
+        "swatch": "#1c2a4a",
+        "nearFace": "Yes",
+        "awayFromFace": "Yes",
+        "confidence": "high",
+        "why": "Dark and cool."
+      },
+      {
+        "id": "p-black",
+        "color": "Black",
+        "swatch": "#17181b",
+        "nearFace": "Test",
+        "awayFromFace": "Yes",
+        "confidence": "unknown",
+        "why": "Not tested yet."
+      }
+    ]
+  },
+  "pieces": [
+    {
+      "status": "owned",
+      "wearCount": 0,
+      "tags": [],
+      "detailsConfirmed": false,
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "id": "pc-tee",
+      "name": "Plain white tee",
+      "brand": "Sample Co",
+      "slots": [
+        "under-layer",
+        "main-top"
+      ],
+      "colorFamily": "white",
+      "depth": "light",
+      "dressLevel": 1
+    },
+    {
+      "status": "owned",
+      "wearCount": 0,
+      "tags": [],
+      "detailsConfirmed": false,
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "id": "pc-knit",
+      "name": "Navy zip cardigan",
+      "slots": [
+        "main-top"
+      ],
+      "colorFamily": "navy",
+      "depth": "dark",
+      "neckline": "full-zip",
+      "cloth": "Cotton",
+      "dressLevel": 2
+    },
+    {
+      "status": "owned",
+      "wearCount": 0,
+      "tags": [
+        "slim"
+      ],
+      "detailsConfirmed": false,
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "id": "pc-chinos",
+      "name": "Tan chinos",
+      "slots": [
+        "trousers"
+      ],
+      "colorFamily": "tan",
+      "dressLevel": 2
+    },
+    {
+      "status": "owned",
+      "wearCount": 0,
+      "tags": [],
+      "detailsConfirmed": false,
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "id": "pc-loafers",
+      "name": "Black loafers",
+      "slots": [
+        "shoes"
+      ],
+      "colorFamily": "black",
+      "cloth": "Leather",
+      "dressLevel": 3
+    },
+    {
+      "status": "owned",
+      "wearCount": 0,
+      "tags": [],
+      "detailsConfirmed": false,
+      "createdAt": "2026-01-05T09:00:00.000Z",
+      "updatedAt": "2026-01-05T09:00:00.000Z",
+      "id": "pc-watch",
+      "name": "Steel watch",
+      "slots": [
+        "watch"
+      ],
+      "hardware": "silver",
+      "cloth": "Steel bracelet"
+    }
+  ],
+  "photos": []
+}
