@@ -3,10 +3,14 @@ import { useEffect, useRef, useState } from 'react';
 import { backupFileName, exportBackup } from '../data/backup';
 import { db } from '../data/db';
 import { getProfile } from '../data/profileRepo';
+import { turnOffReminders } from '../data/reminders';
+import { eraseServerData, getAppKey } from '../data/server';
+import { getBackupState } from '../data/serverBackup';
 import { eraseEverything, isInstalled, requestPersistentStorage, type StorageStatus } from '../data/setup';
 import { Card, PageHeader } from '../ui/controls';
 import { count, describeFile, useFileImport } from '../ui/useFileImport';
 import { WeatherSetup } from '../ui/WeatherSetup';
+import { ServerCards } from './ServerCards';
 
 const STORAGE_TEXT: Record<StorageStatus, string> = {
   protected: 'Protected. The browser has agreed not to clear this app\'s data on its own.',
@@ -42,6 +46,10 @@ export function SettingsScreen() {
   const [storage, setStorage] = useState<StorageStatus>();
   const [exportNote, setExportNote] = useState<string>();
   const [confirmingErase, setConfirmingErase] = useState(false);
+  // Whether this phone is connected to the small server, and backing up to it.
+  const server = useLiveQuery(async () => ({ connected: Boolean(await getAppKey()), backingUp: (await getBackupState()).on }), []);
+  const [eraseServerToo, setEraseServerToo] = useState(true);
+  const [eraseError, setEraseError] = useState<string>();
   const importer = useFileImport();
   const fileInput = useRef<HTMLInputElement>(null);
   const installed = isInstalled();
@@ -67,9 +75,33 @@ export function SettingsScreen() {
     }
   }
 
+  async function onErase() {
+    setEraseError(undefined);
+    if (server?.connected && eraseServerToo) {
+      try {
+        // The alert address first, while the server still knows this phone.
+        await turnOffReminders().catch(() => undefined);
+        await eraseServerData();
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : 'The server could not be reached.';
+        setEraseError(`${reason} Nothing was erased. To erase only this phone, untick the box and try again.`);
+        return;
+      }
+    }
+    await eraseEverything();
+  }
+
   return (
     <>
-      <PageHeader eyebrow="This phone" title="Settings" sub="Everything is stored on this phone. There is no account and nothing is uploaded." />
+      <PageHeader
+        eyebrow="This phone"
+        title="Settings"
+        sub={
+          server?.backingUp
+            ? 'Everything is stored on this phone. An encrypted copy is kept on your own server, which cannot read it.'
+            : 'Everything is stored on this phone. There is no account and nothing is uploaded.'
+        }
+      />
 
       <Card title="Your data">
         <dl className="facts">
@@ -98,7 +130,9 @@ export function SettingsScreen() {
         </Card>
       )}
 
-      <Card title="Back up">
+      <ServerCards profile={profile} />
+
+      <Card title="Back up to a file">
         <p className="hint">
           Saves your profile, pieces, clothing photos, color test results, day plans and outfit log to one file that you keep. Photos of you,
           such as the color test photos, are never included.
@@ -158,11 +192,21 @@ export function SettingsScreen() {
 
       <Card title="Erase">
         <p className="hint">Deletes your profile, every piece and every photo from this phone. A backup file you saved is not touched.</p>
+        {server?.connected && (
+          <label className="check">
+            <input type="checkbox" checked={eraseServerToo} onChange={(e) => setEraseServerToo(e.target.checked)} />
+            <span>Also erase the server: its encrypted backups and this phone's alert address</span>
+          </label>
+        )}
         {confirmingErase ? (
           <div className="notice notice-bad">
-            <p>Erase everything on this phone? This cannot be undone.</p>
+            <p>
+              {server?.connected && eraseServerToo
+                ? 'Erase everything on this phone and on your server? This cannot be undone.'
+                : 'Erase everything on this phone? This cannot be undone.'}
+            </p>
             <div className="row">
-              <button type="button" className="btn btn-danger btn-small" onClick={() => void eraseEverything()}>
+              <button type="button" className="btn btn-danger btn-small" onClick={() => void onErase()}>
                 Yes, erase everything
               </button>
               <button type="button" className="btn btn-small" onClick={() => setConfirmingErase(false)}>
@@ -174,6 +218,11 @@ export function SettingsScreen() {
           <button type="button" className="btn btn-quiet-danger" onClick={() => setConfirmingErase(true)}>
             Erase everything
           </button>
+        )}
+        {eraseError && (
+          <p className="notice notice-bad" role="alert">
+            {eraseError}
+          </p>
         )}
       </Card>
     </>

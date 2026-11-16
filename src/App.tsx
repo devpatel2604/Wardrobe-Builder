@@ -13,10 +13,13 @@ import { TodayScreen } from './screens/TodayScreen';
 import { WardrobeScreen } from './screens/WardrobeScreen';
 import { WeekScreen } from './screens/WeekScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
+import { useServerSync } from './ui/useServerSync';
 
 export function App() {
   // Wrapped in an object so "still loading" and "no profile yet" can be told apart.
   const loaded = useLiveQuery(async () => ({ profile: await getProfile() }), []);
+  // Daily encrypted backup and reminder settings, once connected to the server.
+  useServerSync(Boolean(loaded?.profile));
 
   if (!loaded) return <div className="app" aria-busy="true" />;
   if (!loaded.profile) return <WelcomeScreen />;

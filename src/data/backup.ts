@@ -60,12 +60,15 @@ export function fromBase64(text: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-export async function exportBackup(options: { includePrivatePhotos?: boolean } = {}): Promise<BackupFile> {
+export async function exportBackup(options: { includePrivatePhotos?: boolean; withoutPhotos?: boolean } = {}): Promise<BackupFile> {
   const includePrivate = options.includePrivatePhotos ?? false;
+  // The automatic backup uploads photos one at a time (serverBackup.ts), so it
+  // asks for everything else and leaves the photos out.
+  const photosWanted = options.withoutPhotos ? Promise.resolve<Photo[]>([]) : db.photos.toArray();
   const [profile, pieces, photos, colorTest, dayPlans, outfitLog] = await Promise.all([
     db.profile.get('me'),
     db.pieces.toArray(),
-    db.photos.toArray(),
+    photosWanted,
     db.colorTests.get('current'),
     db.dayPlans.toArray(),
     db.outfitLog.toArray(),
