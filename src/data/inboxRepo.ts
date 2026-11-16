@@ -21,6 +21,10 @@ export async function listInbox(): Promise<InboxItem[]> {
   return db.inbox.orderBy('receivedAt').toArray();
 }
 
+export async function countInbox(): Promise<number> {
+  return db.inbox.count();
+}
+
 export async function getInboxItem(id: string): Promise<InboxItem | undefined> {
   return db.inbox.get(id);
 }

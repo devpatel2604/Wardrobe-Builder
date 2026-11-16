@@ -180,16 +180,38 @@ function toBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+/** The server refuses a picture longer than 1.5 million characters. This leaves room. */
+const AI_IMAGE_CHARS = 1_400_000;
+
 /** Shrinks a stored photo to what the AI model needs and no more. */
 export async function imageForAi(image: Stored, maxEdge: number): Promise<AiImage> {
-  if (image.mimeType === 'image/jpeg' && Math.max(image.width, image.height) <= maxEdge) {
+  if (image.mimeType === 'image/jpeg' && Math.max(image.width, image.height) <= maxEdge && image.data.byteLength * 1.34 < AI_IMAGE_CHARS) {
     return { mediaType: 'image/jpeg', data: toBase64(image.data) };
   }
   const decoded = await decode(new Blob([image.data], { type: image.mimeType }));
   try {
-    const size = fitWithin(decoded.width, decoded.height, maxEdge);
-    return { mediaType: 'image/jpeg', data: toBase64(await render(decoded.source, size.width, size.height, undefined, 0.82)) };
+    let edge = maxEdge;
+    for (;;) {
+      const size = fitWithin(decoded.width, decoded.height, edge);
+      const data = toBase64(await render(decoded.source, size.width, size.height, undefined, 0.82));
+      if (data.length < AI_IMAGE_CHARS || edge <= 512) return { mediaType: 'image/jpeg', data };
+      edge = Math.round(edge * 0.75);
+    }
   } finally {
     decoded.close();
   }
+}
+
+/** A small plain grey square, for checking that the AI route answers. It shows nothing. */
+export async function blankTestImage(): Promise<AiImage> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('This browser could not prepare the test picture.');
+  ctx.fillStyle = '#b9b2a6';
+  ctx.fillRect(0, 0, 64, 64);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+  if (!blob) throw new Error('This browser could not prepare the test picture.');
+  return { mediaType: 'image/jpeg', data: toBase64(await blob.arrayBuffer()) };
 }

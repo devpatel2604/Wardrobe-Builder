@@ -6,6 +6,7 @@ A private wardrobe app for one person. It runs as a web app that is saved to the
 
 - **Profile.** Build and coloring, sizes, the week, stores, rules grouped by kind (hard rules, defaults, soft preferences, open tests) and a starting color palette. Every section except the palette can be edited.
 - **Wardrobe.** Add, edit and delete pieces. Each piece has photos, the slot it fills in an outfit, color, texture, neckline, fit, hem, dress level, cloth, hardware color, warmth, and free tags. Pieces you own are kept apart from pieces you are thinking about.
+- **Adding a piece.** Start from a pasted cut-out, a photo, a store page link, or something sent from the iPhone share menu. Whatever comes in waits in a list on the phone until it is saved, so nothing is lost if the app reloads. A photo that still has its background can be cropped. With an AI key on the server, a model suggests the tags and every field it filled is marked until you change it. With no key, the same screens work and you fill in the tags by hand. See "Adding a piece" below.
 - **Rule checks.** A piece is checked against the hard rules in the profile while you fill in the form: leather clothing, gold or brass hardware, boxy or long shapes.
 - **Color photo test.** Photograph each color under your chin with an on-screen guide, pick the better of two photos again and again, and get your own ranking of colors near the face. You set the verdict for each color and save it to the palette, and you can undo that. See "The color photo test" below.
 - **Today.** One outfit for the occasion and the weather, two alternates, and the reasons. "Wore it", "Swap a piece", "Not today" with an optional reason, and "Build around a piece". From 6 pm it opens on tomorrow when tomorrow has something planned.
@@ -17,7 +18,7 @@ A private wardrobe app for one person. It runs as a web app that is saved to the
 - **Looks.** Save an outfit you like from a post. Paste the link and the post plays in Instagram's own player. Add your own screenshots, and the pieces are listed by slot, by hand or read from the screenshots by an AI model. Once you have checked them, the app shows your version of the look after your rules, what you already own for it and what is missing. See "Saved looks" below.
 - **Offline.** After the first visit the app opens with no connection. The server is only needed for backup and reminders.
 
-Not built yet: the buy-next list, the "what I've learned" page, photo cut-outs, and the screens for AI tagging and the inbox.
+Not built yet: the buy-next list and the "what I've learned" page.
 
 ## No personal data in this repository
 
@@ -186,6 +187,23 @@ npx wrangler dev --var APP_KEY:any-local-key-of-20-chars
 Then open the address it prints. `npm run dev` also reaches the server while `wrangler dev` is running.
 
 Browser storage belongs to one web address. Install the app to the Home Screen from the main address, not from a preview address, or its data will not follow.
+
+## Adding a piece
+
+"Add a piece" on the Wardrobe screen opens `src/screens/addPiece/AddPieceScreen.tsx`. Everything that comes in becomes an item in the local `inbox` table first (`src/data/inboxRepo.ts`), whichever way it arrived:
+
+- **A pasted cut-out.** In Photos, press and hold a piece until it lifts off its background, copy it, and paste it in the app. The app reads the clipboard only on a tap. A picture counts as a cut-out when at least 3% of its pixels are see-through (`src/data/images.ts`).
+- **A photo taken or chosen in the app.** It still has its background, so the form says so and offers a crop box (`src/ui/CropBox.tsx`) and "Paste a cut-out instead".
+- **A store page link.** The app never opens the store's site. Details can be pasted from the page, or a screenshot added, for a model to read.
+- **The share menu.** A Shortcut sends a photo, a page's text or a link to the small server, and the app collects it when it next opens or comes to the front. `src/screens/ShortcutGuideScreen.tsx` has the steps for building the Shortcut, the address, and the script it runs on a store's page.
+
+An item becomes a piece on the piece form (`/wardrobe/new?inbox=<id>`), with a source card on top (`src/screens/addPiece/SourceCard.tsx`). A link from Instagram or a shared screenshot is a look, not a piece, and goes to the looks screens.
+
+**AI tags.** "Suggest tags with AI" sends the one photo (at most 1024 pixels on its long edge) or the one page to `POST /api/ai/piece-photo` or `piece-page`, and says what will be sent before it sends anything. The answer is cleaned against the app's own lists (`cleanProposal` in `src/domain/tagging.ts`), so a made-up value never reaches a piece. `applyProposal` in `src/screens/pieceFormState.ts` fills only fields that are empty or that the owner has not typed in, marks each one "AI" or "AI, not sure", and unticks "I have checked these details". Changing a field removes its mark. The proposal is kept on the saved piece as `tagging`, so the model's reading can be compared with what was saved. A price read from a page is saved as `listPrice` with the day it was read, never as the price paid.
+
+With no AI key on the server, the source card says AI tagging is off and the form is filled in by hand. Settings has a card with the steps to add the key, today's count, and a test that sends a blank grey square.
+
+Not tried on a real iPhone yet: pasting a cut-out from Photos (whether Safari keeps its clear background), the Shortcut, and the crop box under a finger.
 
 ## The small server
 
