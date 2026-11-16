@@ -1,6 +1,7 @@
 import { reapplyColorTestAfterSetup, removeOrphanColorTestPhotos } from './colorTestRepo';
 import { db, nowIso } from './db';
 import { COLOR_TEST_PHOTO_PREFIX, type ColorTest } from '../domain/colorTest';
+import type { DayPlan, OutfitLogEntry } from '../domain/outfits/records';
 import type { Photo, Piece, Profile } from '../domain/types';
 
 /**
@@ -36,6 +37,10 @@ export interface BackupFile {
   photos: StoredPhoto[];
   /** The color photo test, without its photos. Missing in files from before version 2. */
   colorTest?: ColorTest | null;
+  /** What each day is for. Missing in files made before the Today and Week screens. */
+  dayPlans?: DayPlan[];
+  /** Outfits worn or passed over. Missing in older files. */
+  outfitLog?: OutfitLogEntry[];
 }
 
 export function toBase64(buffer: ArrayBuffer): string {
@@ -57,11 +62,13 @@ export function fromBase64(text: string): ArrayBuffer {
 
 export async function exportBackup(options: { includePrivatePhotos?: boolean } = {}): Promise<BackupFile> {
   const includePrivate = options.includePrivatePhotos ?? false;
-  const [profile, pieces, photos, colorTest] = await Promise.all([
+  const [profile, pieces, photos, colorTest, dayPlans, outfitLog] = await Promise.all([
     db.profile.get('me'),
     db.pieces.toArray(),
     db.photos.toArray(),
     db.colorTests.get('current'),
+    db.dayPlans.toArray(),
+    db.outfitLog.toArray(),
   ]);
   return {
     app: BACKUP_APP,
@@ -75,6 +82,8 @@ export async function exportBackup(options: { includePrivatePhotos?: boolean } =
       .filter((p) => !isColorTestPhoto(p) && (includePrivate || p.kind !== 'of-me'))
       .map((p) => ({ ...p, data: toBase64(p.data), thumb: toBase64(p.thumb) })),
     colorTest: colorTest ?? null,
+    dayPlans,
+    outfitLog,
   };
 }
 
@@ -104,6 +113,11 @@ export function parseBackup(text: string): BackupFile {
   }
   if (raw.kind !== 'backup' && raw.kind !== 'setup') throw new Error('That file is not a wardrobe file.');
   if (!Array.isArray(raw.pieces) || !Array.isArray(raw.photos)) throw new Error('That file is incomplete.');
+  for (const list of [raw.dayPlans, raw.outfitLog]) {
+    if (list !== undefined && !(Array.isArray(list) && list.every((row) => isRecord(row) && typeof row.date === 'string'))) {
+      throw new Error('That file has a day plan or outfit log the app cannot read.');
+    }
+  }
   for (const piece of raw.pieces) {
     if (
       !isRecord(piece) ||
@@ -167,7 +181,7 @@ export interface ImportResult {
 
 export async function importBackup(file: BackupFile): Promise<ImportResult> {
   const photos: Photo[] = file.photos.map((p) => ({ ...p, data: fromBase64(p.data), thumb: fromBase64(p.thumb) }));
-  return db.transaction('rw', db.profile, db.pieces, db.photos, db.colorTests, async () => {
+  return db.transaction('rw', [db.profile, db.pieces, db.photos, db.colorTests, db.dayPlans, db.outfitLog], async () => {
     if (file.kind === 'setup') {
       if (file.profile) await db.profile.put({ ...file.profile, updatedAt: nowIso() });
       const existing = new Set(await db.pieces.toCollection().primaryKeys());
@@ -192,6 +206,11 @@ export async function importBackup(file: BackupFile): Promise<ImportResult> {
     await db.colorTests.clear();
     if (file.colorTest) await db.colorTests.put(file.colorTest);
     await removeOrphanColorTestPhotos();
+    // A setup file leaves the day plans and the outfit log alone. A backup replaces them.
+    await db.dayPlans.clear();
+    await db.outfitLog.clear();
+    await db.dayPlans.bulkPut(file.dayPlans ?? []);
+    await db.outfitLog.bulkPut(file.outfitLog ?? []);
     return { kind: 'backup', piecesAdded: file.pieces.length, piecesKept: 0, photos: photos.length };
   });
 }

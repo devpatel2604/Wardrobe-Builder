@@ -152,6 +152,12 @@ export function PieceDetailScreen() {
         </Card>
       )}
 
+      {piece.status === 'owned' && piece.slots.some((s) => s === 'main-top' || s === 'trousers' || s === 'shoes' || s === 'outer-layer') && (
+        <Link className="btn" to={`/today?around=${piece.id}`}>
+          Build an outfit around this
+        </Link>
+      )}
+
       <div className="danger-zone">
         {confirmingDelete ? (
           <>
