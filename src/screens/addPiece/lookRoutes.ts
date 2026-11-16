@@ -1,12 +1,13 @@
 /**
- * Where a waiting link or screenshot goes to become a saved look.
+ * Where a waiting link or screenshot goes to become a saved look. The looks
+ * screens own these two routes (see App.tsx) and remove the item from the
+ * waiting list once it is part of a look.
  *
- * The looks screens are built separately. Until they are in the app, `ready`
- * stays false and the waiting list simply holds those items. The change that
- * adds the two routes below also sets `ready` to true.
+ * `ready` is here so the waiting list can hold such items on its own, with a
+ * plain message, if the looks screens are ever taken out.
  */
 export const LOOK_ROUTES = {
-  ready: false as boolean,
+  ready: true as boolean,
   fromLink: (inboxId: string) => `/inspiration/new?inbox=${inboxId}`,
   fromScreenshot: (inboxId: string) => `/inspiration/attach?inbox=${inboxId}`,
 };

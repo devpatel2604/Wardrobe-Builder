@@ -1,6 +1,7 @@
 import { reapplyColorTestAfterSetup, removeOrphanColorTestPhotos } from './colorTestRepo';
 import { db, nowIso } from './db';
 import { COLOR_TEST_PHOTO_PREFIX, type ColorTest } from '../domain/colorTest';
+import type { SavedLook } from '../domain/looks';
 import type { DayPlan, OutfitLogEntry } from '../domain/outfits/records';
 import type { Photo, Piece, Profile } from '../domain/types';
 
@@ -41,6 +42,8 @@ export interface BackupFile {
   dayPlans?: DayPlan[];
   /** Outfits worn or passed over. Missing in older files. */
   outfitLog?: OutfitLogEntry[];
+  /** Saved inspiration. The screenshots travel with the other photos. Missing in older files. */
+  looks?: SavedLook[];
 }
 
 export function toBase64(buffer: ArrayBuffer): string {
@@ -65,13 +68,14 @@ export async function exportBackup(options: { includePrivatePhotos?: boolean; wi
   // The automatic backup uploads photos one at a time (serverBackup.ts), so it
   // asks for everything else and leaves the photos out.
   const photosWanted = options.withoutPhotos ? Promise.resolve<Photo[]>([]) : db.photos.toArray();
-  const [profile, pieces, photos, colorTest, dayPlans, outfitLog] = await Promise.all([
+  const [profile, pieces, photos, colorTest, dayPlans, outfitLog, looks] = await Promise.all([
     db.profile.get('me'),
     db.pieces.toArray(),
     photosWanted,
     db.colorTests.get('current'),
     db.dayPlans.toArray(),
     db.outfitLog.toArray(),
+    db.looks.toArray(),
   ]);
   return {
     app: BACKUP_APP,
@@ -87,6 +91,7 @@ export async function exportBackup(options: { includePrivatePhotos?: boolean; wi
     colorTest: colorTest ?? null,
     dayPlans,
     outfitLog,
+    looks,
   };
 }
 
@@ -120,6 +125,12 @@ export function parseBackup(text: string): BackupFile {
     if (list !== undefined && !(Array.isArray(list) && list.every((row) => isRecord(row) && typeof row.date === 'string'))) {
       throw new Error('That file has a day plan or outfit log the app cannot read.');
     }
+  }
+  if (
+    raw.looks !== undefined &&
+    !(Array.isArray(raw.looks) && raw.looks.every((row) => isRecord(row) && typeof row.id === 'string' && typeof row.name === 'string' && Array.isArray(row.pieces)))
+  ) {
+    throw new Error('That file has a saved look the app cannot read.');
   }
   for (const piece of raw.pieces) {
     if (
@@ -184,7 +195,7 @@ export interface ImportResult {
 
 export async function importBackup(file: BackupFile): Promise<ImportResult> {
   const photos: Photo[] = file.photos.map((p) => ({ ...p, data: fromBase64(p.data), thumb: fromBase64(p.thumb) }));
-  return db.transaction('rw', [db.profile, db.pieces, db.photos, db.colorTests, db.dayPlans, db.outfitLog], async () => {
+  return db.transaction('rw', [db.profile, db.pieces, db.photos, db.colorTests, db.dayPlans, db.outfitLog, db.looks], async () => {
     if (file.kind === 'setup') {
       if (file.profile) await db.profile.put({ ...file.profile, updatedAt: nowIso() });
       const existing = new Set(await db.pieces.toCollection().primaryKeys());
@@ -214,6 +225,9 @@ export async function importBackup(file: BackupFile): Promise<ImportResult> {
     await db.outfitLog.clear();
     await db.dayPlans.bulkPut(file.dayPlans ?? []);
     await db.outfitLog.bulkPut(file.outfitLog ?? []);
+    // Saved looks follow the same rule. Their screenshots came back with the photos above.
+    await db.looks.clear();
+    await db.looks.bulkPut(file.looks ?? []);
     return { kind: 'backup', piecesAdded: file.pieces.length, piecesKept: 0, photos: photos.length };
   });
 }

@@ -29,7 +29,8 @@ export type RuleCheck =
   | 'no-leather-clothing' // also covers leather watch straps
   | 'silver-over-gold'
   | 'nothing-boxy-or-long'
-  | 'coat-to-mid-thigh'; // an exception: a coat may reach mid-thigh
+  | 'coat-to-mid-thigh' // an exception: a coat may reach mid-thigh
+  | 'no-tie'; // drops a tie from a saved look
 
 export interface Rule {
   id: string;

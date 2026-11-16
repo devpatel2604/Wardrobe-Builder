@@ -1,18 +1,22 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import { listLooks } from '../data/looksRepo';
 import { recentLog } from '../data/outfitLogRepo';
 import { coverPhotos, listPieces } from '../data/piecesRepo';
 import { plansBetween } from '../data/planRepo';
 import { getProfile } from '../data/profileRepo';
 import { addDays, weekdayOf } from '../domain/dates';
+import { formulasWithLooks } from '../domain/looks';
 import { OCCASION_RULES, defaultOccasions, officeHours } from '../domain/outfits/occasions';
 import type { DayPlan, OutfitIds, OutfitLogEntry } from '../domain/outfits/records';
 import type { DayWeather, Occasion, Outfit } from '../domain/outfits/types';
-import type { Photo, Piece, Profile } from '../domain/types';
+import type { Formula, Photo, Piece, Profile } from '../domain/types';
 import { manualWeather, windowWeather, type HourForecast } from '../domain/weather';
 
 export interface OutfitData {
   profile: Profile;
   pieces: Piece[];
+  /** The profile's outfit recipes, plus one for each saved look the owner has confirmed. */
+  formulas: Formula[];
   covers: Map<string, Photo>;
   log: OutfitLogEntry[];
   plans: Map<string, DayPlan>;
@@ -21,14 +25,15 @@ export interface OutfitData {
 /** Everything the Today and Week screens read, kept current as the database changes. */
 export function useOutfitData(today: string): OutfitData | undefined {
   return useLiveQuery(async () => {
-    const [profile, pieces, covers, log, plans] = await Promise.all([
+    const [profile, pieces, looks, covers, log, plans] = await Promise.all([
       getProfile(),
       listPieces(),
+      listLooks(),
       coverPhotos(),
       recentLog(),
       plansBetween(today, addDays(today, 7)),
     ]);
-    return profile ? { profile, pieces, covers, log, plans } : undefined;
+    return profile ? { profile, pieces, formulas: formulasWithLooks(profile.formulas ?? [], looks, profile.rules), covers, log, plans } : undefined;
   }, [today]);
 }
 

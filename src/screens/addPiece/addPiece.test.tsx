@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App';
 import { importBackup } from '../../data/backup';
+import { db } from '../../data/db';
 import { cropImage } from '../../data/images';
 import { addInboxItem, getInboxItem, listInbox } from '../../data/inboxRepo';
 import { listPhotos, listPieces } from '../../data/piecesRepo';
@@ -140,15 +141,24 @@ describe('the start of adding a piece', () => {
     expect(await screen.findByRole('button', { name: 'Crop' })).toBeInTheDocument();
   });
 
-  it('keeps a pasted Instagram link in the list, because it is a look and not a piece', async () => {
+  it('hands a pasted Instagram link to the looks screens, because it is a look and not a piece', async () => {
     const user = userEvent.setup();
     await open('/wardrobe/add');
     await user.type(await screen.findByLabelText('Link to the product page'), 'https://www.instagram.com/p/abc123/');
     await user.click(screen.getByRole('button', { name: 'Use this link' }));
-    expect(await screen.findByText(/it is a look, not a piece/)).toBeInTheDocument();
-    const row = within(card('Waiting to be added'));
-    expect(row.getByText(/Instagram link/)).toBeInTheDocument();
-    expect(row.queryByRole('link', { name: /Add as a piece/ })).not.toBeInTheDocument();
+    await waitFor(async () => expect(await db.looks.count()).toBe(1));
+    expect(await listInbox()).toHaveLength(0);
+    expect(await listPieces()).toHaveLength(5);
+  });
+
+  it('offers a shared screenshot and an Instagram link as looks, not as pieces', async () => {
+    const shot = await addInboxItem({ kind: 'screenshot', door: 'shortcut', image: { ...fakeImage(), cutout: false } });
+    const link = await addInboxItem({ kind: 'link', door: 'shortcut', url: 'https://www.instagram.com/reel/xyz/' });
+    await open('/wardrobe/add');
+    const list = within(await screen.findByRole('heading', { name: 'Waiting to be added' }).then((h) => h.closest('section')!));
+    expect(list.getByRole('link', { name: 'Save as a look: Screenshot of a look' })).toHaveAttribute('href', `/inspiration/attach?inbox=${shot.id}`);
+    expect(list.getByRole('link', { name: 'Save as a look: instagram.com' })).toHaveAttribute('href', `/inspiration/new?inbox=${link.id}`);
+    expect(list.queryByRole('link', { name: /Add as a piece/ })).not.toBeInTheDocument();
   });
 
   it('refuses something that is not a link', async () => {

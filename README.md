@@ -14,9 +14,10 @@ A private wardrobe app for one person. It runs as a web app that is saved to the
 - **Backup.** Export everything to one file, restore it, or erase the phone's copy.
 - **Automatic backup.** About once a day the app encrypts a copy on the phone and uploads it to the small server, which cannot read it. A new phone restores it with the app key and the recovery code.
 - **Evening reminder.** On the evening before an office day the small server sends one alert with the next morning's forecast.
+- **Looks.** Save an outfit you like from a post. Paste the link and the post plays in Instagram's own player. Add your own screenshots, and the pieces are listed by slot, by hand or read from the screenshots by an AI model. Once you have checked them, the app shows your version of the look after your rules, what you already own for it and what is missing. See "Saved looks" below.
 - **Offline.** After the first visit the app opens with no connection. The server is only needed for backup and reminders.
 
-Not built yet: the buy-next list, the "what I've learned" page, saved inspiration, photo cut-outs, AI tagging, and the rest of the server (share-menu inbox, AI proxy).
+Not built yet: the buy-next list, the "what I've learned" page, photo cut-outs, and the screens for AI tagging and the inbox.
 
 ## No personal data in this repository
 
@@ -94,9 +95,23 @@ Things to know before changing it:
 
 `src/data/weatherRepo.ts` calls `api.weather.gov` twice: the map point gives the address of its hourly forecast, then the forecast. The only thing sent is the point in `profile.home.point`, rounded to two decimals. The last forecast is kept in the `meta` table, so the app has one offline, and it is asked for again after two hours. This has not been tried on a real iPhone yet. If the weather service does not answer a web page directly, add the app's own server as a second source in `fetchHours`.
 
+## Saved looks
+
+The Looks tab (`#/inspiration`) keeps outfits worth copying. The rules are in `src/domain/looks.ts` and `src/domain/links.ts`, the storage in `src/data/looksRepo.ts`, and the screens in `src/screens/looks`.
+
+- **A look is tied to a creator's post only when its link is saved.** With a link it is credited "post saved". With a creator's name and no link it is "in the style of". An account name read off a screenshot only fills in the creator. It never ties the look to a post.
+- **The post plays in Instagram's own player**, in a sandboxed frame that Instagram fills. The app takes nothing out of it and makes no call to Instagram itself. The frame loads by itself only while the look has no screenshot yet. After that it loads on a tap, because opening it tells Instagram the post was viewed.
+- **Screenshots are the owner's own**, up to four a look, stored as photos of class `inspiration`. They are shown only on the look's screens.
+- **Reading a screenshot** sends the first two to the small server's `look` request (see "The small server"). The answer is a proposal: values outside the app's own lists are dropped, pieces the owner wrote or edited are kept, and nothing is matched until the owner taps "These are right". Without an AI key the button is left out, the screen says reading is switched off, and the pieces are added by hand.
+- **Your version** applies the profile's rules to each piece: a hard rule changes it (gold becomes silver, leather clothing becomes cloth, a long hem is shortened), and a "no tie" rule (`check: "no-tie"`, or a rule that says "no tie") leaves a tie out. The owner can keep any piece as it is, or leave any piece out.
+- **The match** compares each piece of the version with what is owned, by slot, color group and kind of garment. A piece is owned, close (with what differs, and a "Mine is close enough" button) or missing. Tops, trousers, shoes and layers count as pieces away. Belts, watches and the like are finishing touches. A watch is matched on its metal.
+- **A confirmed look is an outfit recipe.** Today and Week credit an outfit that matches it, the same way as the recipes in the profile (`formulasWithLooks`). Nothing is written into the profile.
+- **Sharing in.** A link or a screenshot in the inbox opens `#/inspiration/new?inbox=<id>` or `#/inspiration/attach?inbox=<id>` and leaves the inbox once it is part of a look.
+- **The buy list plugs in.** `src/data/lookWishes.ts` sends missing pieces to a buy list given to `connectBuyList`. Until the buy list is built, those buttons are left out.
+
 ## Data
 
-Everything lives in eight tables in the browser's IndexedDB.
+Everything lives in nine tables in the browser's IndexedDB.
 
 | Table | Holds |
 | --- | --- |
@@ -108,6 +123,7 @@ Everything lives in eight tables in the browser's IndexedDB.
 | `dayPlans` | One row per day you changed: its occasions, and the weather if you set it by hand |
 | `outfitLog` | One row per answer to a suggested outfit: worn (with a rating) or passed over (with a reason) |
 | `inbox` | Things waiting to be added: a photo, a store page, a link or a screenshot, with the tags an AI model proposed. Never in a backup |
+| `looks` | One row per saved look: its link, creator, the pieces by slot, the owner's choices, and when the pieces were checked. Its screenshots are in `photos` under `look:<id>` |
 
 The types are in `src/domain/types.ts`.
 
@@ -158,7 +174,7 @@ The database has no id in `wrangler.jsonc`, so the first deploy creates one name
 
 Cloudflare also builds a preview of every other branch with `npx wrangler preview`, and reports it on the pull request as the check "Workers Builds: wardrobe-builder". That command needs the `previews` block in `wrangler.jsonc`. The block is empty on purpose: a preview gets the app's files but no database and no app key, so its server refuses everything and never touches the real backups. A preview address is public, like the main one, and shows the same empty app.
 
-`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it allows is `https://api.weather.gov`, for the forecast. The small server is at the app's own address, so it needs no entry. The permissions policy lets only the app's own address ask for the phone's location, which the Weather card in Settings uses, and turns the microphone and payments off. Any other feature that calls an outside service (an Instagram iframe) has to add that address there, or the browser will block it.
+`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it may call is `https://api.weather.gov`, for the forecast, and the one outside page it may show in a frame is `https://www.instagram.com`, for the player of a saved post. The small server is at the app's own address, so it needs no entry. The permissions policy lets only the app's own address ask for the phone's location, which the Weather card in Settings uses, and turns the microphone and payments off. Any other feature that calls an outside service has to add that address there, or the browser will block it.
 
 To run everything locally the way Cloudflare does:
 
@@ -206,8 +222,9 @@ Every route except `/api/health` needs the header `Authorization: Bearer <app ke
 | --- | --- | --- |
 | `piece-photo` | One photo of a piece, and optionally one of its label | Proposed tags for the piece |
 | `piece-page` | A store page's text as copied by the phone, a screenshot of it, or both | Proposed tags, with brand, cloth and price |
+| `look` | One or two of the owner's screenshots of an outfit he saved | The pieces of the outfit by slot, and the account name if the screenshot shows one |
 
-Each call is counted before it is made, per kind and per day (UTC), in the `ai_usage` table. Over the limit, the server refuses without calling the provider. The defaults are 60 a day for each kind and 120 a day in all. A Cloudflare variable `AI_DAILY_LIMIT` changes the total. `AI_MODELS` (for example `piece-photo=claude-sonnet-5-5`) answers a kind with another model, to compare models without a code change. Nothing that passes through is stored or logged: no photo, no page text, no answer.
+Each call is counted before it is made, per kind and per day (UTC), in the `ai_usage` table. Over the limit, the server refuses without calling the provider. The defaults are 60 a day for each piece kind, 40 for `look`, and 120 a day in all. A Cloudflare variable `AI_DAILY_LIMIT` changes the total. `AI_MODELS` (for example `piece-photo=claude-sonnet-5-5`) answers a kind with another model, to compare models without a code change. Nothing that passes through is stored or logged: no photo, no page text, no answer.
 
 To add a kind, write a file in `server/ai` that exports an `AiKind` (see `types.ts`) and add it to the list in `kinds.ts`. A kind's `schema` makes the model answer in exactly that JSON shape. The server never loads a store's page: page text is collected by the owner's own phone.
 
