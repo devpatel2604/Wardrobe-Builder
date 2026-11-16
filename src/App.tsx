@@ -5,6 +5,10 @@ import { ColorCaptureScreen } from './screens/colorTest/ColorCaptureScreen';
 import { ColorCompareScreen } from './screens/colorTest/ColorCompareScreen';
 import { ColorResultsScreen } from './screens/colorTest/ColorResultsScreen';
 import { ColorTestScreen } from './screens/colorTest/ColorTestScreen';
+import { LookDetailScreen } from './screens/looks/LookDetailScreen';
+import { LookAttachScreen } from './screens/looks/LookAttachScreen';
+import { LookNewScreen } from './screens/looks/LookNewScreen';
+import { LooksScreen } from './screens/looks/LooksScreen';
 import { PieceDetailScreen } from './screens/PieceDetailScreen';
 import { PieceFormScreen } from './screens/PieceFormScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
@@ -35,6 +39,10 @@ export function App() {
           <Route path="/wardrobe/new" element={<PieceFormScreen />} />
           <Route path="/wardrobe/:id" element={<PieceDetailScreen />} />
           <Route path="/wardrobe/:id/edit" element={<PieceFormScreen />} />
+          <Route path="/inspiration" element={<LooksScreen />} />
+          <Route path="/inspiration/new" element={<LookNewScreen />} />
+          <Route path="/inspiration/attach" element={<LookAttachScreen />} />
+          <Route path="/inspiration/:id" element={<LookDetailScreen />} />
           <Route path="/profile" element={<ProfileScreen profile={loaded.profile} />} />
           <Route path="/color-test" element={<ColorTestScreen />} />
           <Route path="/color-test/capture/:color" element={<ColorCaptureScreen />} />
@@ -48,6 +56,7 @@ export function App() {
         <NavLink to="/today">Today</NavLink>
         <NavLink to="/week">Week</NavLink>
         <NavLink to="/wardrobe">Wardrobe</NavLink>
+        <NavLink to="/inspiration">Looks</NavLink>
         <NavLink to="/profile">Profile</NavLink>
         <NavLink to="/settings">Settings</NavLink>
       </nav>

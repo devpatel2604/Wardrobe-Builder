@@ -40,7 +40,7 @@ export function WeekScreen() {
       for (const occasion of occasions) weather[occasion] = weatherFor(data, hours, date, occasion);
       return { date, occasions, weather };
     });
-    const base = { pieces: data.pieces, rules: data.profile.rules, palette: data.profile.palette, formulas: data.profile.formulas ?? [], log: data.log };
+    const base = { pieces: data.pieces, rules: data.profile.rules, palette: data.profile.palette, formulas: data.formulas, log: data.log };
     const tempF = typicalLow(hours, dates);
     return { days, outfits: planWeek(days, base), tempF, grid: coverage({ ...base, date: today }, tempF ?? NEUTRAL_F) };
   }, [data, dates, hours, today]);
