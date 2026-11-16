@@ -2,7 +2,7 @@ import type { Formula, FormulaSlot, LookSource, Piece, PieceMatcher } from '../t
 import { depthOf } from './traits';
 import type { Outfit, PickSource } from './types';
 
-function matchesPiece(piece: Piece, m: PieceMatcher): boolean {
+export function matchesPiece(piece: Piece, m: PieceMatcher): boolean {
   if (m.colorFamilies && !(piece.colorFamily && m.colorFamilies.includes(piece.colorFamily))) return false;
   if (m.depths && !m.depths.includes(depthOf(piece))) return false;
   if (m.necklines && !(piece.neckline && m.necklines.includes(piece.neckline))) return false;

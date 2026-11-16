@@ -32,6 +32,10 @@ export interface AppServer {
   close(): Promise<void>;
 }
 
+function isMessageContent(answer: unknown): answer is { messageContent: unknown[] } {
+  return typeof answer === 'object' && answer !== null && Array.isArray((answer as { messageContent?: unknown }).messageContent);
+}
+
 export async function startAppServer(): Promise<AppServer> {
   const inner = await startTestServer();
   const server: AppServer = {
@@ -63,7 +67,9 @@ export async function startAppServer(): Promise<AppServer> {
               type: 'message',
               role: 'assistant',
               model: 'claude-opus-5-5',
-              content: [{ type: 'text', text: JSON.stringify(answer) }],
+              // A stand-in that needs more than one block of text, such as a web search with
+              // its results, answers { messageContent: [...] } and it is used as it is.
+              content: isMessageContent(answer) ? answer.messageContent : [{ type: 'text', text: JSON.stringify(answer) }],
               stop_reason: 'end_turn',
               stop_sequence: null,
               usage: { input_tokens: 1500, output_tokens: 300 },

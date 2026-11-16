@@ -182,7 +182,9 @@ export function SettingsScreen() {
         {importer.result && (
           <p className="notice" role="status">
             {importer.result.kind === 'setup'
-              ? `Loaded. Profile replaced, ${count(importer.result.piecesAdded, 'piece')} added, ${importer.result.piecesKept} already here.`
+              ? `Loaded. Profile replaced, ${count(importer.result.piecesAdded, 'piece')} added, ${importer.result.piecesKept} already here.${
+                  importer.result.wishesAdded > 0 ? ` ${count(importer.result.wishesAdded, 'needed piece')} added to Buy next.` : ''
+                }`
               : `Restored ${count(importer.result.piecesAdded, 'piece')} and ${count(importer.result.photos, 'photo')}.`}
           </p>
         )}

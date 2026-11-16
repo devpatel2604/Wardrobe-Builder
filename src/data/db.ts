@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
+import type { WishItem } from '../domain/buyNext/types';
 import type { ColorTest } from '../domain/colorTest';
 import type { InboxItem } from '../domain/inbox';
 import type { SavedLook } from '../domain/looks';
@@ -25,6 +26,7 @@ export class WardrobeDb extends Dexie {
   outfitLog!: EntityTable<OutfitLogEntry, 'id'>;
   inbox!: EntityTable<InboxItem, 'id'>;
   looks!: EntityTable<SavedLook, 'id'>;
+  wishlist!: EntityTable<WishItem, 'id'>;
 
   constructor(name = 'wardrobe-builder') {
     super(name);
@@ -51,6 +53,10 @@ export class WardrobeDb extends Dexie {
     // as "inspiration", under the id "look:<id>".
     this.version(5).stores({
       looks: 'id, updatedAt',
+    });
+    // The buy-next list: needed pieces, each with the products found for it.
+    this.version(6).stores({
+      wishlist: 'id, state',
     });
   }
 }
