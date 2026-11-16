@@ -1,6 +1,9 @@
+import { aiStatus, postAi } from './ai/index';
+import { hasAiKey } from './ai/claude';
 import { backupSummary, getPhoto, getSnapshot, listBackup, postSnapshot, putPhoto } from './backup';
 import type { Env, Fetch } from './env';
 import { getForecast } from './forecast';
+import { deleteInboxItem, getInboxFile, inboxCount, listInbox, postInbox } from './inbox';
 import { errorResponse, HttpError, json, requireAppKey, serverIsReady } from './http';
 import { getVapidKeys } from './push';
 import { deleteReminder, putReminder, reminderCount, runReminders, testReminder } from './reminders';
@@ -8,7 +11,8 @@ import { ensureSchema, eraseAll } from './schema';
 
 /**
  * The small server. It does the few things the app cannot do alone on an
- * iPhone: hold an encrypted backup, and send the evening reminder.
+ * iPhone: hold an encrypted backup, send the evening reminder, catch what the
+ * share menu sends, and pass a few fixed kinds of request to an AI model.
  *
  * It never picks an outfit, never reads the backup and never visits a store.
  * If it is down, the app still opens and still works.
@@ -25,13 +29,16 @@ export async function handleApi(request: Request, env: Env, fetcher: Fetch, now:
   // files-only one. Gives away nothing else.
   if (route === 'GET /api/health') return json({ app: 'wardrobe-builder', server: 1, ready: serverIsReady(env) });
 
+  // The share-menu Shortcut posts here. It may carry the key in its form, so this route checks the key itself.
+  if (route === 'POST /api/inbox') return postInbox(env, request, now);
+
   await requireAppKey(request, env);
   const db = env.DB;
   await ensureSchema(db);
 
   if (route === 'GET /api/status') {
-    const [backups, reminders, keys] = await Promise.all([backupSummary(db), reminderCount(db), getVapidKeys(db)]);
-    return json({ ok: true, backups, reminders, pushKey: keys.publicKey });
+    const [backups, reminders, keys, inbox] = await Promise.all([backupSummary(db), reminderCount(db), getVapidKeys(db), inboxCount(db)]);
+    return json({ ok: true, backups, reminders, pushKey: keys.publicKey, inbox, ai: hasAiKey(env) });
   }
 
   if (route === 'GET /api/backup') return listBackup(db);
@@ -48,7 +55,17 @@ export async function handleApi(request: Request, env: Env, fetcher: Fetch, now:
 
   if (route === 'GET /api/forecast') return getForecast(db, fetcher, url);
 
-  // Erase: backups, alert addresses and the server's own keys.
+  if (route === 'GET /api/inbox') return listInbox(db);
+  const inboxFile = /^\/api\/inbox\/([^/]+)\/file$/.exec(path);
+  if (inboxFile && method === 'GET') return getInboxFile(db, inboxFile[1]!);
+  const inboxItem = /^\/api\/inbox\/([^/]+)$/.exec(path);
+  if (inboxItem && method === 'DELETE') return deleteInboxItem(db, inboxItem[1]!);
+
+  if (route === 'GET /api/ai') return aiStatus(env, now);
+  const ai = /^\/api\/ai\/([a-z0-9-]+)$/.exec(path);
+  if (ai && method === 'POST') return postAi(env, fetcher, ai[1]!, request, now);
+
+  // Erase: backups, alert addresses, the inbox and the server's own keys.
   if (route === 'DELETE /api/data') {
     await eraseAll(db);
     return json({ ok: true });
