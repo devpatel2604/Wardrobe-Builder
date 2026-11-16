@@ -12,9 +12,11 @@ A private wardrobe app for one person. It runs as a web app that is saved to the
 - **Week.** The next seven days: the office on office days plus any occasion you add, with no main top repeated where the wardrobe allows it. A coverage grid counts the outfits you can make for each occasion on a dry day and on a wet one, and says what kind of piece would fill an empty cell.
 - **Weather.** The hourly forecast from the US National Weather Service for the hours of each occasion. With no forecast you set the temperature and rain by hand.
 - **Backup.** Export everything to one file, restore it, or erase the phone's copy.
-- **Offline.** After the first visit the app opens with no connection.
+- **Automatic backup.** About once a day the app encrypts a copy on the phone and uploads it to the small server, which cannot read it. A new phone restores it with the app key and the recovery code.
+- **Evening reminder.** On the evening before an office day the small server sends one alert with the next morning's forecast.
+- **Offline.** After the first visit the app opens with no connection. The server is only needed for backup and reminders.
 
-Not built yet: the buy-next list, the "what I've learned" page, saved inspiration, photo cut-outs, AI tagging, and the server (share-menu inbox, AI proxy, reminders, automatic backup).
+Not built yet: the buy-next list, the "what I've learned" page, saved inspiration, photo cut-outs, AI tagging, and the rest of the server (share-menu inbox, AI proxy).
 
 ## No personal data in this repository
 
@@ -47,7 +49,8 @@ To try it, open the local address, choose "Load a setup file or backup" and pick
 | Photos | Shrunk on the phone to 1600 pixels plus a thumbnail, stored as bytes | Browser storage is limited, and a camera photo is several megabytes |
 | Install and offline | Web app manifest and a service worker (vite-plugin-pwa) | Opens from the Home Screen like an app |
 | Routing | Hash routes and relative asset paths | The build runs from any static host and any sub-path |
-| Hosting | Cloudflare, static files only for now | Free, and it can run the small server later |
+| Hosting | Cloudflare: static files plus a small server under `/api` | Free, and one account covers both |
+| Server storage | Cloudflare D1 (a small SQL database) | Needs no payment card, unlike Cloudflare's file storage |
 | Tests | Vitest, Testing Library, fake-indexeddb | Screens are tested against a real (in-memory) database |
 
 ```
@@ -58,6 +61,8 @@ src/
   screens/    one file per screen (the color test's screens are in screens/colorTest)
   ui/         shared controls and the camera helper
   test/       test setup and made-up sample data
+server/       the small server that Cloudflare runs under /api
+public/       icons, security headers, and the alert handler (push-sw.js)
 examples/     a made-up setup file
 ```
 
@@ -98,7 +103,7 @@ Everything lives in seven tables in the browser's IndexedDB.
 | `profile` | One document: body, coloring, sizes, week, stores, rules, palette |
 | `pieces` | One row per piece, with its tags |
 | `photos` | Photo bytes and a thumbnail, linked to a piece, each with a privacy class |
-| `meta` | Saved settings and the last forecast, as key and value. Never exported |
+| `meta` | Saved settings as key and value: the last forecast, the app key, the recovery code, backup and reminder state. Never exported, never uploaded |
 | `colorTests` | One row: the colors chosen, which photo belongs to which color, every pick, and what was saved to the palette |
 | `dayPlans` | One row per day you changed: its occasions, and the weather if you set it by hand |
 | `outfitLog` | One row per answer to a suggested outfit: worn (with a rating) or passed over (with a reason) |
@@ -137,7 +142,7 @@ Code that scores outfits should look up a palette entry by `family` and read `te
 
 ## Hosting
 
-The app is hosted on Cloudflare as static files (`wrangler.jsonc`). Cloudflare builds it from this repository on each push.
+Cloudflare builds the app from this repository on each push and runs it as one Worker (`wrangler.jsonc`). Static files are served directly. Requests under `/api` go to the small server in `server/`.
 
 | Setting in Cloudflare | Value |
 | --- | --- |
@@ -145,17 +150,49 @@ The app is hosted on Cloudflare as static files (`wrangler.jsonc`). Cloudflare b
 | Build command | `npm run build` |
 | Deploy command | `npx wrangler deploy` |
 | Node version | 22, from `.nvmrc` |
+| Secret `APP_KEY` | The app key, 20 characters or more. Set it in the dashboard: the Worker, then Settings, then Variables and Secrets. Never put it in this repository |
 
-`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it allows is `https://api.weather.gov`, for the forecast. The permissions policy lets only the app's own address ask for the phone's location, which the Weather card in Settings uses, and turns the microphone and payments off. Any other feature that calls an outside service (the small server, an Instagram iframe) has to add that address there, or the browser will block it.
+The database has no id in `wrangler.jsonc`, so the first deploy creates one named `wardrobe-builder`. The server creates its own tables on first use. If a deploy ever fails on the database, create a D1 database by hand in the dashboard and add its id as `database_id`.
 
-To serve the build locally the way Cloudflare does, headers included:
+`public/_headers` sets the security headers the host sends with every file. The content security policy lets the app load code, images and data only from its own address. The one outside address it allows is `https://api.weather.gov`, for the forecast. The small server is at the app's own address, so it needs no entry. The permissions policy lets only the app's own address ask for the phone's location, which the Weather card in Settings uses, and turns the microphone and payments off. Any other feature that calls an outside service (an Instagram iframe) has to add that address there, or the browser will block it.
+
+To run everything locally the way Cloudflare does:
 
 ```sh
 npm run build
-npx wrangler dev
+npx wrangler dev --var APP_KEY:any-local-key-of-20-chars
 ```
 
+Then open the address it prints. `npm run dev` also reaches the server while `wrangler dev` is running.
+
 Browser storage belongs to one web address. Install the app to the Home Screen from the main address, not from a preview address, or its data will not follow.
+
+## The small server
+
+The server does the few things a web app on an iPhone cannot do alone. It never picks an outfit, never reads a backup and never visits a store. If it is down the app still works.
+
+Every route except `/api/health` needs the header `Authorization: Bearer <app key>`. Until `APP_KEY` is set, the server refuses everything.
+
+| Route | What it does |
+| --- | --- |
+| `GET /api/health` | Says a server is here and whether it has its key. Nothing else |
+| `GET /api/status` | Backup count, reminder count, and the public key for alerts |
+| `GET /api/backup` | Lists stored snapshots and photo ids |
+| `PUT` and `GET /api/backup/photos/:id` | One encrypted photo |
+| `POST /api/backup/snapshots` | Stores a snapshot. Refused if it names a photo the server lacks |
+| `GET /api/backup/snapshots/:id` | One snapshot. `latest` gives the newest |
+| `PUT` and `DELETE /api/reminders` | Turns the evening reminder on or off for one device |
+| `POST /api/reminders/test` | Sends one alert now |
+| `GET /api/forecast?lat=&lon=` | Hourly forecast from the US National Weather Service, for a point rounded to two decimals |
+| `DELETE /api/data` | Erases everything the server holds |
+
+**Backup.** A backup is a *snapshot* (the export file without photo bytes, plus a list of photos) and the photos it names. Each photo is uploaded once and shared between snapshots. The phone encrypts each item with AES-256-GCM before upload (`src/data/vault.ts`). The key comes from a 256-bit *recovery code* that is made on the phone and never sent. The server keeps the 7 newest snapshots and deletes photos no snapshot names. Photos with the class `of-me` are never uploaded.
+
+**Reminder.** The phone gets an alert address from its push service (Apple's, on an iPhone) and gives it to the server with the office days, the hour and the time zone. A job runs each hour, and sends the alert when the phone's own clock reaches the chosen hour on the evening before an office day. The message is encrypted for the phone (RFC 8291) and signed (RFC 8292) with keys the server makes on first use (`server/push.ts`). It uses the declarative form, so iOS 18.4 and later show it without waking the app. `public/push-sw.js` shows it on older systems.
+
+**What the server holds.** Encrypted backups, each device's alert address with its reminder settings (office days, hour, time zone, forecast point), and its own signing keys. No profile, no wardrobe, no readable photo.
+
+**Tests.** `server/*.test.ts` run the server code against a local copy of the Cloudflare database. `src/data/serverBackup.test.ts` runs the app's backup and restore against that same server code, so the two cannot drift apart.
 
 ## iPhone notes
 
@@ -163,4 +200,6 @@ Browser storage belongs to one web address. Install the app to the Home Screen f
 - The app asks the browser to protect its storage (`navigator.storage.persist()`), and Settings shows the answer.
 - An app on the Home Screen has its own storage, separate from Safari. Data saved in a Safari tab does not move over, so load the setup file after installing.
 - Inputs use 16-pixel text so Safari does not zoom in on focus.
+- Alerts work only in the app opened from the Home Screen, on iOS 16.4 or later. The request for permission must come from a tap.
+- A web app cannot run in the background, so the automatic backup happens when the app is opened.
 - The camera needs a secure address (https, or localhost while developing) and the `playsinline` attribute on the video, or iPhone opens it full screen. iPhone may ask for camera permission again each time the app is opened.
