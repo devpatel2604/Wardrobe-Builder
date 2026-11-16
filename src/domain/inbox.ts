@@ -81,3 +81,27 @@ export function siteOf(url: string | undefined): string | undefined {
     return undefined;
   }
 }
+
+/** A short name for an item in the waiting list. */
+export function inboxTitle(item: InboxItem): string {
+  if (item.kind === 'photo') return 'Clothing photo';
+  if (item.kind === 'screenshot') return 'Screenshot of a look';
+  return item.title ?? siteOf(item.url) ?? (item.kind === 'page' ? 'Store page' : 'Link');
+}
+
+const DOOR_WORDS: Record<InboxDoor, string> = {
+  shortcut: 'From the share menu',
+  paste: 'Pasted here',
+  picker: 'Chosen here',
+};
+
+/** One line under the title: what it is and how it got here. */
+export function inboxDetail(item: InboxItem): string {
+  const parts: string[] = [];
+  if (item.kind === 'photo' && item.image) parts.push(item.image.cutout ? 'Cut-out' : 'Photo as taken');
+  if (item.kind === 'page') parts.push(item.text ? 'Store page with its text' : 'Store page');
+  if (item.kind === 'link') parts.push(isInstagramLink(item.url) ? 'Instagram link' : 'Link');
+  if (item.kind !== 'photo' && item.title && siteOf(item.url)) parts.push(siteOf(item.url)!);
+  parts.push(DOOR_WORDS[item.door]);
+  return parts.join(' · ');
+}

@@ -67,6 +67,10 @@ export function PieceDetailScreen() {
     ['Warmth', labelOf(WARMTHS, piece.warmth)],
     ['Rain or snow', piece.wetOk === undefined ? undefined : piece.wetOk ? 'Fine when wet' : 'Dry days only'],
     ['Size', piece.size],
+    [
+      'Price on the page',
+      piece.listPrice === undefined ? undefined : `$${piece.listPrice.toFixed(2)}${piece.listPriceOn ? `, seen ${formatDate(piece.listPriceOn)}` : ''}`,
+    ],
     ['Price paid', piece.pricePaid === undefined ? undefined : `$${piece.pricePaid.toFixed(2)}`],
     ['Bought', piece.acquiredOn && formatDate(piece.acquiredOn)],
   ];
@@ -135,6 +139,13 @@ export function PieceDetailScreen() {
                 {t}
               </span>
             ))}
+          </p>
+        )}
+        {piece.tagging && (
+          <p className="muted">
+            Tags were first suggested by AI ({piece.tagging.model}) from {piece.tagging.source === 'photo' ? 'a photo' : 'the store page'} on{' '}
+            {formatDate(piece.tagging.at.slice(0, 10))}
+            {piece.detailsConfirmed ? ', then checked by you.' : '. Not checked yet.'}
           </p>
         )}
       </Card>

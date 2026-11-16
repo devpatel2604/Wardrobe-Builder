@@ -10,6 +10,7 @@ import { eraseEverything, isInstalled, requestPersistentStorage, type StorageSta
 import { Card, PageHeader } from '../ui/controls';
 import { count, describeFile, useFileImport } from '../ui/useFileImport';
 import { WeatherSetup } from '../ui/WeatherSetup';
+import { AiCards } from './AiCards';
 import { ServerCards } from './ServerCards';
 
 const STORAGE_TEXT: Record<StorageStatus, string> = {
@@ -131,6 +132,8 @@ export function SettingsScreen() {
       )}
 
       <ServerCards profile={profile} />
+
+      <AiCards />
 
       <Card title="Back up to a file">
         <p className="hint">

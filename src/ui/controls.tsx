@@ -10,13 +10,18 @@ interface ChipsProps<T> {
   onChange: (value: T | undefined) => void;
   /** When true, tapping the chosen chip again clears it. */
   allowClear?: boolean;
+  /** A small label after the name, such as "AI" on a value a model filled in. */
+  mark?: ReactNode;
 }
 
 /** One choice from a short list, as tappable chips. */
-export function Chips<T extends string | number>({ label, hint, options, value, onChange, allowClear = true }: ChipsProps<T>) {
+export function Chips<T extends string | number>({ label, hint, options, value, onChange, allowClear = true, mark }: ChipsProps<T>) {
   return (
     <fieldset className="field">
-      <legend>{label}</legend>
+      <legend>
+        {label}
+        {mark}
+      </legend>
       {hint && <p className="hint">{hint}</p>}
       <div className="chips">
         {options.map((o) => {
@@ -45,13 +50,17 @@ interface MultiChipsProps<T> {
   options: Option<T>[];
   value: T[];
   onChange: (value: T[]) => void;
+  mark?: ReactNode;
 }
 
 /** Any number of choices from a short list. */
-export function MultiChips<T extends string | number>({ label, hint, options, value, onChange }: MultiChipsProps<T>) {
+export function MultiChips<T extends string | number>({ label, hint, options, value, onChange, mark }: MultiChipsProps<T>) {
   return (
     <fieldset className="field">
-      <legend>{label}</legend>
+      <legend>
+        {label}
+        {mark}
+      </legend>
       {hint && <p className="hint">{hint}</p>}
       <div className="chips">
         {options.map((o) => {
@@ -83,13 +92,17 @@ interface TextFieldProps {
   placeholder?: string;
   multiline?: boolean;
   required?: boolean;
+  mark?: ReactNode;
 }
 
-export function TextField({ label, hint, value, onChange, type = 'text', inputMode, placeholder, multiline, required }: TextFieldProps) {
+export function TextField({ label, hint, value, onChange, type = 'text', inputMode, placeholder, multiline, required, mark }: TextFieldProps) {
   const id = useId();
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
+      <div className="field-label">
+        <label htmlFor={id}>{label}</label>
+        {mark}
+      </div>
       {hint && <p className="hint">{hint}</p>}
       {multiline ? (
         <textarea id={id} value={value} placeholder={placeholder} rows={3} onChange={(e) => onChange(e.target.value)} />
