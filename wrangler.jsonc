@@ -1,11 +1,33 @@
-// Cloudflare hosting. The app is static files only: no server code runs yet.
+// Cloudflare hosting. One Worker serves the built app as static files and
+// runs the small server under /api (server/index.ts).
 // The "name" here must match the Worker's name in the Cloudflare dashboard.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "wardrobe-builder",
+  "main": "server/index.ts",
   "compatibility_date": "2026-11-15",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Only /api reaches the server code. Everything else is a static file,
+    // which Cloudflare serves without counting it as a server request.
+    "run_worker_first": ["/api/*"]
+  },
+  // The server's database: encrypted backups and the reminder settings.
+  // No id is given, so the first deploy creates the database by this name.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wardrobe-builder"
+    }
+  ],
+  // Once an hour, in UTC. The server checks whether it is the reminder hour
+  // in the owner's own time zone, so daylight saving needs no change here.
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+  "observability": {
+    "enabled": true
   }
 }

@@ -29,9 +29,17 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Shows the evening alert when one arrives (public/push-sw.js).
+        importScripts: ['push-sw.js'],
+        // The small server's routes are never answered from the offline copy.
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],
+  // With `npx wrangler dev` running, `npm run dev` reaches the small server too.
+  server: {
+    proxy: { '/api': 'http://localhost:8787' },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

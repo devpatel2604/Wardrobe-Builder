@@ -783,3 +783,19 @@ a:focus-visible {
   color: var(--navy);
   border-top-color: var(--navy);
 }
+
+/* Server: recovery code */
+
+.code-block {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+  user-select: all;
+  -webkit-user-select: all;
+}

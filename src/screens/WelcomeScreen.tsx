@@ -1,11 +1,27 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { findServer } from '../data/server';
 import { startEmpty } from '../data/setup';
 import { useFileImport } from '../ui/useFileImport';
+import { RestoreFromServer } from './RestoreFromServer';
 
 /** First run, and after an erase: the app holds nothing yet. */
 export function WelcomeScreen() {
   const input = useRef<HTMLInputElement>(null);
   const importer = useFileImport();
+  // Offered only where a server is running: a new phone can bring back its
+  // automatic backup with the app key and the recovery code.
+  const [hasServer, setHasServer] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void findServer().then((kind) => {
+      if (live) setHasServer(kind === 'ready');
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   return (
     <div className="app">
@@ -38,7 +54,14 @@ export function WelcomeScreen() {
           <button type="button" className="btn" onClick={() => void startEmpty()}>
             Start with an empty profile
           </button>
+          {hasServer && !restoring && (
+            <button type="button" className="btn" onClick={() => setRestoring(true)}>
+              Restore my automatic backup
+            </button>
+          )}
         </div>
+
+        {restoring && <RestoreFromServer askForAppKey onCancel={() => setRestoring(false)} />}
 
         {importer.error && (
           <p className="notice notice-bad" role="alert">
