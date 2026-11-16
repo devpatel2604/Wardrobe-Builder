@@ -90,7 +90,10 @@ export function SettingsScreen() {
       </Card>
 
       <Card title="Back up">
-        <p className="hint">Saves your profile, pieces and clothing photos to one file that you keep. Photos of you are never included.</p>
+        <p className="hint">
+          Saves your profile, pieces, clothing photos and color test results to one file that you keep. Photos of you, such as the color test
+          photos, are never included.
+        </p>
         <button type="button" className="btn btn-primary" onClick={() => void onExport()}>
           Make a backup file
         </button>

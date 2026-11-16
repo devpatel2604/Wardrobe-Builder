@@ -4,6 +4,7 @@ import { updateProfile } from '../data/profileRepo';
 import { CONFIDENCE_LABELS, RULE_KINDS, WEEKDAYS } from '../domain/options';
 import type { Profile, Rule, RuleKind, SizeEntry, StoreEntry } from '../domain/types';
 import { Card, EvidenceTag, PageHeader, TextField } from '../ui/controls';
+import { ColorTestLink } from './colorTest/ColorTestEntry';
 
 interface SectionProps<T> {
   title: string;
@@ -301,20 +302,25 @@ export function ProfileScreen({ profile }: { profile: Profile }) {
 
       <Card title="Colors">
         {profile.palette.length === 0 ? (
-          <Nothing>No palette yet. The color photo test will build one from your own ratings.</Nothing>
+          <Nothing>No palette yet. The color photo test will build one from your own picks.</Nothing>
         ) : (
           <>
-            <p className="hint">
-              A starting point from stylists' advice, not a tested result. The color photo test will replace it with your own ranking.{' '}
-              <EvidenceTag evidence="convention" />
-            </p>
+            {profile.palette.some((c) => c.evidence === 'your-test') ? (
+              <p className="hint">Colors marked "Your test" are ranked by your own picks in the color photo test. The rest is stylists' advice, not a tested result.</p>
+            ) : (
+              <p className="hint">
+                A starting point from stylists' advice, not a tested result. The color photo test will replace it with your own ranking.{' '}
+                <EvidenceTag evidence="convention" />
+              </p>
+            )}
             <ul className="palette">
               {profile.palette.map((c) => (
                 <li key={c.id}>
                   <span className="swatch" style={{ background: c.swatch }} aria-hidden="true" />
                   <div>
                     <p>
-                      <strong>{c.color}</strong> <span className="tag">{CONFIDENCE_LABELS[c.confidence]}</span>
+                      <strong>{c.color}</strong>{' '}
+                      {c.evidence === 'your-test' ? <EvidenceTag evidence="your-test" /> : <span className="tag">{CONFIDENCE_LABELS[c.confidence]}</span>}
                     </p>
                     <p className="muted">
                       Near the face: {c.nearFace}. Away from it: {c.awayFromFace}.
@@ -326,6 +332,7 @@ export function ProfileScreen({ profile }: { profile: Profile }) {
             </ul>
           </>
         )}
+        <ColorTestLink />
       </Card>
     </>
   );

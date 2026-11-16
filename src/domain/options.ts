@@ -55,6 +55,7 @@ export const COLOR_FAMILIES: (Option<ColorFamily> & { swatch: string })[] = [
   { value: 'brown', label: 'Brown', swatch: '#7a5238' },
   { value: 'dark-brown', label: 'Dark brown', swatch: '#3f2a20' },
   { value: 'light-grey', label: 'Light grey', swatch: '#c9cbcf' },
+  { value: 'grey', label: 'Mid grey', swatch: '#8b8e94' },
   { value: 'charcoal', label: 'Charcoal', swatch: '#3b3e45' },
   { value: 'black', label: 'Black', swatch: '#17181b' },
   { value: 'mustard', label: 'Mustard', swatch: '#c79a2e' },
@@ -127,7 +128,7 @@ export const RULE_KINDS: Option<RuleKind>[] = [
   { value: 'hard', label: 'Hard rules', hint: 'These remove an option outright. Only you change them.' },
   { value: 'default', label: 'Defaults', hint: 'Applied unless you say otherwise.' },
   { value: 'soft', label: 'Soft preferences', hint: 'These nudge a choice up or down.' },
-  { value: 'open-test', label: 'Open tests', hint: 'Waiting on the color photo test.' },
+  { value: 'open-test', label: 'Open tests', hint: 'Waiting on the color photo test, which you can take from the Colors card below.' },
 ];
 
 export const EVIDENCE_LABELS: Record<Evidence, string> = {
@@ -136,6 +137,7 @@ export const EVIDENCE_LABELS: Record<Evidence, string> = {
   research: 'Research',
   convention: 'Convention',
   'working-rule': 'Working rule',
+  'your-test': 'Your test',
 };
 
 export const CONFIDENCE_LABELS: Record<Confidence, string> = {
