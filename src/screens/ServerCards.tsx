@@ -295,7 +295,7 @@ function ReminderCard({ profile }: { profile: Profile }) {
   const [error, setError] = useState<string>();
   const support = reminderSupport();
   const officeDays = profile.week.officeDays;
-  const hasPlace = Boolean((profile.home as { point?: unknown }).point);
+  const hasPlace = Boolean(profile.home.point);
 
   if (!state) return null;
   const chosenHour = hour ?? state.hour ?? DEFAULT_REMINDER_HOUR;
@@ -344,7 +344,7 @@ function ReminderCard({ profile }: { profile: Profile }) {
             </div>
             <div>
               <dt>Forecast</dt>
-              <dd>{hasPlace ? 'Included, for the forecast place in your profile.' : 'Not included. No forecast place is set in your profile yet.'}</dd>
+              <dd>{hasPlace ? 'Included, for the forecast place in the Weather card above.' : 'Not included. Set a forecast place in the Weather card above.'}</dd>
             </div>
           </dl>
           <div className="row">

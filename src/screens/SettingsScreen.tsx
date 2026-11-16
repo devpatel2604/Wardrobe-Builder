@@ -9,6 +9,7 @@ import { getBackupState } from '../data/serverBackup';
 import { eraseEverything, isInstalled, requestPersistentStorage, type StorageStatus } from '../data/setup';
 import { Card, PageHeader } from '../ui/controls';
 import { count, describeFile, useFileImport } from '../ui/useFileImport';
+import { WeatherSetup } from '../ui/WeatherSetup';
 import { ServerCards } from './ServerCards';
 
 const STORAGE_TEXT: Record<StorageStatus, string> = {
@@ -41,11 +42,12 @@ async function saveFile(name: string, text: string): Promise<void> {
 
 export function SettingsScreen() {
   const counts = useLiveQuery(async () => ({ pieces: await db.pieces.count(), photos: await db.photos.count() }), []);
+  const profile = useLiveQuery(() => getProfile(), []);
   const [storage, setStorage] = useState<StorageStatus>();
   const [exportNote, setExportNote] = useState<string>();
   const [confirmingErase, setConfirmingErase] = useState(false);
   // Whether this phone is connected to the small server, and backing up to it.
-  const server = useLiveQuery(async () => ({ connected: Boolean(await getAppKey()), backingUp: (await getBackupState()).on, profile: await getProfile() }), []);
+  const server = useLiveQuery(async () => ({ connected: Boolean(await getAppKey()), backingUp: (await getBackupState()).on }), []);
   const [eraseServerToo, setEraseServerToo] = useState(true);
   const [eraseError, setEraseError] = useState<string>();
   const importer = useFileImport();
@@ -122,12 +124,18 @@ export function SettingsScreen() {
         </dl>
       </Card>
 
-      <ServerCards profile={server?.profile} />
+      {profile && (
+        <Card title="Weather">
+          <WeatherSetup key={`${profile.home.point?.lat},${profile.home.point?.lon}`} profile={profile} />
+        </Card>
+      )}
+
+      <ServerCards profile={profile} />
 
       <Card title="Back up to a file">
         <p className="hint">
-          Saves your profile, pieces, clothing photos and color test results to one file that you keep. Photos of you, such as the color test
-          photos, are never included.
+          Saves your profile, pieces, clothing photos, color test results, day plans and outfit log to one file that you keep. Photos of you,
+          such as the color test photos, are never included.
         </p>
         <button type="button" className="btn btn-primary" onClick={() => void onExport()}>
           Make a backup file

@@ -64,9 +64,9 @@ function appUrl(): string {
 /** Sends the alert address and the current settings to the server, if they changed. */
 async function sendSettings(subscription: PushSubscription, hour: number, force = false): Promise<void> {
   const profile = await getProfile();
-  // The forecast point is set on the profile by the Today screen's weather
-  // settings. Without one the alert still comes, with no weather in it.
-  const point = (profile?.home as { point?: { lat: number; lon: number } } | undefined)?.point;
+  // The forecast point is set in Settings, under Weather. Without one the
+  // alert still comes, with no weather in it.
+  const point = profile?.home.point;
   const body = {
     subscription: subscription.toJSON(),
     officeDays: profile?.week.officeDays ?? [],
