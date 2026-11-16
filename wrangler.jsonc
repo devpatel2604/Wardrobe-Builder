@@ -29,5 +29,10 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // Cloudflare builds a preview of every branch with "npx wrangler preview",
+  // and that command stops unless this block is here. It is empty on purpose:
+  // a preview gets the app's files but no database and no app key, so its
+  // server answers "not set up" and can never reach the real backups.
+  "previews": {}
 }
