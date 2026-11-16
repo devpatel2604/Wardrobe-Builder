@@ -144,7 +144,7 @@ interface OutfitsProps {
 }
 
 function Outfits({ data, forecast, date, today, occasion, planned, around, onAround }: OutfitsProps) {
-  const { profile, pieces, covers, log } = data;
+  const { profile, pieces, formulas, covers, log } = data;
   const [chosenKey, setChosenKey] = useState<string>();
   const [swap, setSwap] = useState<{ include: string[] }>();
   const [swapSlot, setSwapSlot] = useState<SwapSlot>();
@@ -162,14 +162,14 @@ function Outfits({ data, forecast, date, today, occasion, planned, around, onAro
       pieces,
       rules: profile.rules,
       palette: profile.palette,
-      formulas: profile.formulas ?? [],
+      formulas,
       occasion,
       weather,
       date,
       log,
       skipKeys: log.filter((e) => e.action === 'not-today' && e.date === date && e.occasion === occasion).map((e) => e.outfitKey),
     }),
-    [pieces, profile, occasion, date, log, weather],
+    [pieces, profile, formulas, occasion, date, log, weather],
   );
   const aroundId = around?.id;
   const result = useMemo(() => recommend({ ...base, include: swap?.include ?? (aroundId ? [aroundId] : undefined) }), [base, swap, aroundId]);
