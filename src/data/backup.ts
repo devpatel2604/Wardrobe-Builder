@@ -1,4 +1,6 @@
+import { reapplyColorTestAfterSetup, removeOrphanColorTestPhotos } from './colorTestRepo';
 import { db, nowIso } from './db';
+import { COLOR_TEST_PHOTO_PREFIX, type ColorTest } from '../domain/colorTest';
 import type { DayPlan, OutfitLogEntry } from '../domain/outfits/records';
 import type { Photo, Piece, Profile } from '../domain/types';
 
@@ -13,9 +15,13 @@ import type { Photo, Piece, Profile } from '../domain/types';
  *
  * Saved settings (the key-value table) are never exported, so a key stored
  * there later cannot end up in a file.
+ *
+ * The color photo test travels as its picks and results. Its photos never go
+ * into a file, not even when photos of the owner are asked for.
  */
 export const BACKUP_APP = 'wardrobe-builder';
-export const BACKUP_FORMAT_VERSION = 1;
+/** Version 2 added the color test. Version 1 files still load. */
+export const BACKUP_FORMAT_VERSION = 2;
 
 type StoredPhoto = Omit<Photo, 'data' | 'thumb'> & { data: string; thumb: string };
 
@@ -29,6 +35,8 @@ export interface BackupFile {
   profile: Profile | null;
   pieces: Piece[];
   photos: StoredPhoto[];
+  /** The color photo test, without its photos. Missing in files from before version 2. */
+  colorTest?: ColorTest | null;
   /** What each day is for. Missing in files made before the Today and Week screens. */
   dayPlans?: DayPlan[];
   /** Outfits worn or passed over. Missing in older files. */
@@ -54,10 +62,11 @@ export function fromBase64(text: string): ArrayBuffer {
 
 export async function exportBackup(options: { includePrivatePhotos?: boolean } = {}): Promise<BackupFile> {
   const includePrivate = options.includePrivatePhotos ?? false;
-  const [profile, pieces, photos, dayPlans, outfitLog] = await Promise.all([
+  const [profile, pieces, photos, colorTest, dayPlans, outfitLog] = await Promise.all([
     db.profile.get('me'),
     db.pieces.toArray(),
     db.photos.toArray(),
+    db.colorTests.get('current'),
     db.dayPlans.toArray(),
     db.outfitLog.toArray(),
   ]);
@@ -70,11 +79,16 @@ export async function exportBackup(options: { includePrivatePhotos?: boolean } =
     profile: profile ?? null,
     pieces,
     photos: photos
-      .filter((p) => includePrivate || p.kind !== 'of-me')
+      .filter((p) => !isColorTestPhoto(p) && (includePrivate || p.kind !== 'of-me'))
       .map((p) => ({ ...p, data: toBase64(p.data), thumb: toBase64(p.thumb) })),
+    colorTest: colorTest ?? null,
     dayPlans,
     outfitLog,
   };
+}
+
+function isColorTestPhoto(photo: { pieceId: string }): boolean {
+  return photo.pieceId.startsWith(COLOR_TEST_PHOTO_PREFIX);
 }
 
 export function backupFileName(exportedAt: string): string {
@@ -143,6 +157,18 @@ export function parseBackup(text: string): BackupFile {
       throw new Error('That file has a profile the app cannot read.');
     }
   }
+  const colorTest = raw.colorTest;
+  if (colorTest !== undefined && colorTest !== null) {
+    if (
+      !isRecord(colorTest) ||
+      colorTest.id !== 'current' ||
+      !Array.isArray(colorTest.colors) ||
+      !Array.isArray(colorTest.shots) ||
+      !Array.isArray(colorTest.picks)
+    ) {
+      throw new Error('That file has a color test the app cannot read.');
+    }
+  }
   return raw as unknown as BackupFile;
 }
 
@@ -155,7 +181,7 @@ export interface ImportResult {
 
 export async function importBackup(file: BackupFile): Promise<ImportResult> {
   const photos: Photo[] = file.photos.map((p) => ({ ...p, data: fromBase64(p.data), thumb: fromBase64(p.thumb) }));
-  return db.transaction('rw', [db.profile, db.pieces, db.photos, db.dayPlans, db.outfitLog], async () => {
+  return db.transaction('rw', [db.profile, db.pieces, db.photos, db.colorTests, db.dayPlans, db.outfitLog], async () => {
     if (file.kind === 'setup') {
       if (file.profile) await db.profile.put({ ...file.profile, updatedAt: nowIso() });
       const existing = new Set(await db.pieces.toCollection().primaryKeys());
@@ -164,16 +190,22 @@ export async function importBackup(file: BackupFile): Promise<ImportResult> {
       const existingPhotos = new Set(await db.photos.toCollection().primaryKeys());
       const newPhotos = photos.filter((p) => !existingPhotos.has(p.id));
       await db.photos.bulkAdd(newPhotos);
+      // A setup file carries stylists' advice. Results the owner already saved go back on top.
+      await reapplyColorTestAfterSetup();
       return { kind: 'setup', piecesAdded: missing.length, piecesKept: file.pieces.length - missing.length, photos: newPhotos.length };
     }
     await db.profile.clear();
     await db.pieces.clear();
     // A default backup never holds photos of the owner, so those stay put.
-    if (file.includesPrivatePhotos) await db.photos.clear();
+    // Color-test photos are in no backup at all, so they always stay.
+    if (file.includesPrivatePhotos) await db.photos.filter((p) => !isColorTestPhoto(p)).delete();
     else await db.photos.where('kind').notEqual('of-me').delete();
     if (file.profile) await db.profile.put(file.profile);
     await db.pieces.bulkPut(file.pieces);
     await db.photos.bulkPut(photos);
+    await db.colorTests.clear();
+    if (file.colorTest) await db.colorTests.put(file.colorTest);
+    await removeOrphanColorTestPhotos();
     // A setup file leaves the day plans and the outfit log alone. A backup replaces them.
     await db.dayPlans.clear();
     await db.outfitLog.clear();

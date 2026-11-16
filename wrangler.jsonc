@@ -1,0 +1,11 @@
+// Cloudflare hosting. The app is static files only: no server code runs yet.
+// The "name" here must match the Worker's name in the Cloudflare dashboard.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wardrobe-builder",
+  "compatibility_date": "2026-11-15",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

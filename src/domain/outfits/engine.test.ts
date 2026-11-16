@@ -35,6 +35,7 @@ import { officeHours } from './occasions';
 import { faceRating } from './score';
 import { outfitKey } from './traits';
 import type { Outfit } from './types';
+import type { PaletteEntry } from '../types';
 import { planWeek } from './week';
 
 const names = (o: Outfit) => [o.mainTop, o.underLayer, o.thirdLayer, o.trousers, o.shoes].filter(Boolean).map((p) => p!.name);
@@ -170,7 +171,7 @@ describe('formulas and the palette', () => {
   });
 
   it('lets a color test result win over the palette text', () => {
-    const tested = [
+    const tested: PaletteEntry[] = [
       ...engineInput().palette,
       {
         id: 'p-t',
@@ -178,10 +179,11 @@ describe('formulas and the palette', () => {
         swatch: '#ca8',
         nearFace: 'Test',
         awayFromFace: 'Yes',
-        confidence: 'unknown' as const,
+        confidence: 'unknown',
         why: '',
         family: 'tan',
-        test: { verdict: 'avoid' },
+        evidence: 'your-test',
+        test: { verdict: 'avoid', rank: 3, of: 3, wins: 0, losses: 2, ties: 0, testedOn: '2026-01-05' },
       },
     ];
     expect(faceRating('tan', tested)).toMatchObject({ verdict: 'no', tested: true });

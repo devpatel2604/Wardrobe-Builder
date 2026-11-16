@@ -7,6 +7,7 @@ import { SLOTS, labelOf, swatchOf } from '../domain/options';
 import { breaksHardRule } from '../domain/ruleChecks';
 import type { Photo, Piece, PieceStatus, Rule, Slot } from '../domain/types';
 import { PageHeader, StoredImage } from '../ui/controls';
+import { ColorTestPrompt } from './colorTest/ColorTestEntry';
 
 interface Group {
   id: string;
@@ -60,6 +61,8 @@ export function WardrobeScreen() {
           </Link>
         }
       />
+
+      <ColorTestPrompt />
 
       <div className="segmented" role="group" aria-label="Which pieces">
         <button type="button" aria-pressed={status === 'owned'} onClick={() => setStatus('owned')}>

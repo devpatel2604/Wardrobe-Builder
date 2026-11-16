@@ -47,9 +47,6 @@ export interface FaceRating {
   tested: boolean;
 }
 
-/** The color test adds these to a palette entry. Read loosely, so an older palette still works. */
-type PaletteRow = PaletteEntry & { family?: string; test?: { verdict?: string } };
-
 const PALETTE_NAMES: Partial<Record<string, string[]>> = {
   white: ['white'],
   cream: ['cream', 'off-white'],
@@ -83,7 +80,7 @@ const UNRATED: FaceRating = { verdict: 'unrated', confidence: 'unknown', tested:
  */
 export function faceRating(family: ColorFamily | undefined, palette: PaletteEntry[]): FaceRating {
   if (!family) return UNRATED;
-  const rows = palette as PaletteRow[];
+  const rows = palette;
   const tested = rows.find((row) => row.family === family && row.test?.verdict);
   if (tested) {
     const verdict = tested.test?.verdict;
@@ -121,7 +118,7 @@ function nearFacePart(outfit: Outfit, palette: PaletteEntry[]): ScorePart | unde
   const topRating = faceRating(top.colorFamily, palette);
   const underRating = under ? faceRating(under.colorFamily, palette) : undefined;
   const lightUnder = under !== undefined && colorGroup(under) === 'white';
-  const evidence: Evidence = topRating.tested ? 'your-choice' : 'convention';
+  const evidence: Evidence = topRating.tested ? 'your-test' : 'convention';
   const topColor = capitalize(colorWord(top.colorFamily));
 
   let points = 0;
