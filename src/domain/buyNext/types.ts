@@ -1,5 +1,6 @@
 import type { Occasion } from '../outfits/types';
-import type { Evidence, LookSource, Piece } from '../types';
+import type { ColorFamily, Depth, DressLevel, Evidence, LookSource, Neckline, Piece, Slot, Texture } from '../types';
+import type { FitCheck } from './fitCheck';
 
 /**
  * The buy-next list (design brief, sections 6.4 and 7.4).
@@ -60,8 +61,41 @@ export interface WishItem {
   state: WishState;
   /** Set when bought: the wardrobe piece it became. */
   pieceId?: string;
+  /** Set when bought. Cleared again if the piece goes back. */
+  bought?: Purchase;
+  /** The fit check, once it has been answered. */
+  fitCheck?: FitCheck;
   createdAt: string;
   updatedAt: string;
+}
+
+/** What the owner recorded when tapping "Bought it". */
+export interface Purchase {
+  /** YYYY-MM-DD */
+  on: string;
+  /** Which product it was, when it was one from the list. */
+  optionId?: string;
+  pricePaid?: number;
+  /** The last day it can go back (YYYY-MM-DD). */
+  returnBy?: string;
+}
+
+/**
+ * A missing piece of a saved look, as the inspiration screens hand it over.
+ * It carries only what can be read off a picture.
+ */
+export interface LookWish {
+  slot: Slot;
+  name: string;
+  colorFamily?: ColorFamily;
+  depth?: Depth;
+  texture?: Texture;
+  neckline?: Neckline;
+  dressLevel?: DressLevel;
+  tags: string[];
+  note?: string;
+  /** The saved look it is missing from. */
+  lookId: string;
 }
 
 export type OptionRole = 'exact' | 'lookalike';

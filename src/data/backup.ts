@@ -1,5 +1,6 @@
 import { reapplyColorTestAfterSetup, removeOrphanColorTestPhotos } from './colorTestRepo';
 import { db, nowIso } from './db';
+import type { WishItem } from '../domain/buyNext/types';
 import { COLOR_TEST_PHOTO_PREFIX, type ColorTest } from '../domain/colorTest';
 import type { DayPlan, OutfitLogEntry } from '../domain/outfits/records';
 import type { Photo, Piece, Profile } from '../domain/types';
@@ -41,6 +42,8 @@ export interface BackupFile {
   dayPlans?: DayPlan[];
   /** Outfits worn or passed over. Missing in older files. */
   outfitLog?: OutfitLogEntry[];
+  /** The buy-next list. Missing in files made before the Buy next screen. */
+  wishlist?: WishItem[];
 }
 
 export function toBase64(buffer: ArrayBuffer): string {
@@ -65,13 +68,14 @@ export async function exportBackup(options: { includePrivatePhotos?: boolean; wi
   // The automatic backup uploads photos one at a time (serverBackup.ts), so it
   // asks for everything else and leaves the photos out.
   const photosWanted = options.withoutPhotos ? Promise.resolve<Photo[]>([]) : db.photos.toArray();
-  const [profile, pieces, photos, colorTest, dayPlans, outfitLog] = await Promise.all([
+  const [profile, pieces, photos, colorTest, dayPlans, outfitLog, wishlist] = await Promise.all([
     db.profile.get('me'),
     db.pieces.toArray(),
     photosWanted,
     db.colorTests.get('current'),
     db.dayPlans.toArray(),
     db.outfitLog.toArray(),
+    db.wishlist.toArray(),
   ]);
   return {
     app: BACKUP_APP,
@@ -87,6 +91,7 @@ export async function exportBackup(options: { includePrivatePhotos?: boolean; wi
     colorTest: colorTest ?? null,
     dayPlans,
     outfitLog,
+    wishlist,
   };
 }
 
@@ -120,6 +125,22 @@ export function parseBackup(text: string): BackupFile {
     if (list !== undefined && !(Array.isArray(list) && list.every((row) => isRecord(row) && typeof row.date === 'string'))) {
       throw new Error('That file has a day plan or outfit log the app cannot read.');
     }
+  }
+  if (raw.wishlist !== undefined) {
+    const readable =
+      Array.isArray(raw.wishlist) &&
+      raw.wishlist.every(
+        (item) =>
+          isRecord(item) &&
+          typeof item.id === 'string' &&
+          typeof item.name === 'string' &&
+          isRecord(item.spec) &&
+          Array.isArray(item.spec.slots) &&
+          Array.isArray(item.spec.tags) &&
+          Array.isArray(item.options) &&
+          item.options.every((o) => isRecord(o) && typeof o.id === 'string' && typeof o.name === 'string'),
+      );
+    if (!readable) throw new Error('That file has a buy-next list the app cannot read.');
   }
   for (const piece of raw.pieces) {
     if (
@@ -180,11 +201,13 @@ export interface ImportResult {
   piecesAdded: number;
   piecesKept: number;
   photos: number;
+  /** Lines added to the buy-next list. */
+  wishesAdded: number;
 }
 
 export async function importBackup(file: BackupFile): Promise<ImportResult> {
   const photos: Photo[] = file.photos.map((p) => ({ ...p, data: fromBase64(p.data), thumb: fromBase64(p.thumb) }));
-  return db.transaction('rw', [db.profile, db.pieces, db.photos, db.colorTests, db.dayPlans, db.outfitLog], async () => {
+  return db.transaction('rw', [db.profile, db.pieces, db.photos, db.colorTests, db.dayPlans, db.outfitLog, db.wishlist], async () => {
     if (file.kind === 'setup') {
       if (file.profile) await db.profile.put({ ...file.profile, updatedAt: nowIso() });
       const existing = new Set(await db.pieces.toCollection().primaryKeys());
@@ -195,7 +218,18 @@ export async function importBackup(file: BackupFile): Promise<ImportResult> {
       await db.photos.bulkAdd(newPhotos);
       // A setup file carries stylists' advice. Results the owner already saved go back on top.
       await reapplyColorTestAfterSetup();
-      return { kind: 'setup', piecesAdded: missing.length, piecesKept: file.pieces.length - missing.length, photos: newPhotos.length };
+      // Lines the phone does not have yet are added. A line already there keeps
+      // everything the owner did to it: its checks, its picks, whether it was bought.
+      const listed = new Set(await db.wishlist.toCollection().primaryKeys());
+      const newWishes = (file.wishlist ?? []).filter((item) => !listed.has(item.id));
+      await db.wishlist.bulkAdd(newWishes);
+      return {
+        kind: 'setup',
+        piecesAdded: missing.length,
+        piecesKept: file.pieces.length - missing.length,
+        photos: newPhotos.length,
+        wishesAdded: newWishes.length,
+      };
     }
     await db.profile.clear();
     await db.pieces.clear();
@@ -214,6 +248,8 @@ export async function importBackup(file: BackupFile): Promise<ImportResult> {
     await db.outfitLog.clear();
     await db.dayPlans.bulkPut(file.dayPlans ?? []);
     await db.outfitLog.bulkPut(file.outfitLog ?? []);
-    return { kind: 'backup', piecesAdded: file.pieces.length, piecesKept: 0, photos: photos.length };
+    await db.wishlist.clear();
+    await db.wishlist.bulkPut(file.wishlist ?? []);
+    return { kind: 'backup', piecesAdded: file.pieces.length, piecesKept: 0, photos: photos.length, wishesAdded: file.wishlist?.length ?? 0 };
   });
 }
