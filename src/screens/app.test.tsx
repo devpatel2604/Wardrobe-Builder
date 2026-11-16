@@ -97,6 +97,7 @@ describe('wardrobe', () => {
     const user = userEvent.setup();
     await renderLoadedApp();
     await user.click(await screen.findByRole('link', { name: 'Add a piece' }));
+    await user.click(await screen.findByRole('link', { name: 'Fill in everything by hand' }));
 
     await user.type(await screen.findByLabelText('Name'), 'Cream cable zip');
     await user.type(screen.getByLabelText('Brand'), 'Sample Co');

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { getProfile } from './data/profileRepo';
+import { AddPieceScreen } from './screens/addPiece/AddPieceScreen';
 import { ColorCaptureScreen } from './screens/colorTest/ColorCaptureScreen';
 import { ColorCompareScreen } from './screens/colorTest/ColorCompareScreen';
 import { ColorResultsScreen } from './screens/colorTest/ColorResultsScreen';
@@ -9,6 +10,7 @@ import { PieceDetailScreen } from './screens/PieceDetailScreen';
 import { PieceFormScreen } from './screens/PieceFormScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { ShortcutGuideScreen } from './screens/ShortcutGuideScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import { WardrobeScreen } from './screens/WardrobeScreen';
 import { WeekScreen } from './screens/WeekScreen';
@@ -32,6 +34,7 @@ export function App() {
           <Route path="/today" element={<TodayScreen />} />
           <Route path="/week" element={<WeekScreen />} />
           <Route path="/wardrobe" element={<WardrobeScreen />} />
+          <Route path="/wardrobe/add" element={<AddPieceScreen />} />
           <Route path="/wardrobe/new" element={<PieceFormScreen />} />
           <Route path="/wardrobe/:id" element={<PieceDetailScreen />} />
           <Route path="/wardrobe/:id/edit" element={<PieceFormScreen />} />
@@ -41,6 +44,7 @@ export function App() {
           <Route path="/color-test/compare" element={<ColorCompareScreen />} />
           <Route path="/color-test/results" element={<ColorResultsScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/settings/shortcut" element={<ShortcutGuideScreen />} />
           <Route path="*" element={<Navigate to="/today" replace />} />
         </Routes>
       </main>

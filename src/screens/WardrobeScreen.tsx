@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { countInbox } from '../data/inboxRepo';
 import { coverPhotos, listPieces } from '../data/piecesRepo';
 import { getProfile } from '../data/profileRepo';
 import { SLOTS, labelOf, swatchOf } from '../domain/options';
@@ -30,8 +31,8 @@ function inGroup(piece: Piece, group: Group): boolean {
 
 export function WardrobeScreen() {
   const data = useLiveQuery(async () => {
-    const [pieces, covers, profile] = await Promise.all([listPieces(), coverPhotos(), getProfile()]);
-    return { pieces, covers, rules: profile?.rules ?? [] };
+    const [pieces, covers, profile, waiting] = await Promise.all([listPieces(), coverPhotos(), getProfile(), countInbox()]);
+    return { pieces, covers, rules: profile?.rules ?? [], waiting };
   }, []);
   const [status, setStatus] = useState<PieceStatus>('owned');
   const [groupId, setGroupId] = useState<string>('all');
@@ -56,11 +57,17 @@ export function WardrobeScreen() {
             : `${owned.length} ${owned.length === 1 ? 'piece' : 'pieces'} you own${toCheck > 0 ? `. ${toCheck} still need their details checked.` : '.'}`
         }
         action={
-          <Link className="btn btn-primary btn-small" to="/wardrobe/new">
+          <Link className="btn btn-primary btn-small" to="/wardrobe/add">
             Add a piece
           </Link>
         }
       />
+
+      {data.waiting > 0 && (
+        <Link className="notice" to="/wardrobe/add">
+          {data.waiting === 1 ? '1 thing is waiting to be added' : `${data.waiting} things are waiting to be added`} ›
+        </Link>
+      )}
 
       <ColorTestPrompt />
 
