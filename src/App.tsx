@@ -1,6 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { getProfile } from './data/profileRepo';
+import { ColorCaptureScreen } from './screens/colorTest/ColorCaptureScreen';
+import { ColorCompareScreen } from './screens/colorTest/ColorCompareScreen';
+import { ColorResultsScreen } from './screens/colorTest/ColorResultsScreen';
+import { ColorTestScreen } from './screens/colorTest/ColorTestScreen';
 import { PieceDetailScreen } from './screens/PieceDetailScreen';
 import { PieceFormScreen } from './screens/PieceFormScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
@@ -25,6 +29,10 @@ export function App() {
           <Route path="/wardrobe/:id" element={<PieceDetailScreen />} />
           <Route path="/wardrobe/:id/edit" element={<PieceFormScreen />} />
           <Route path="/profile" element={<ProfileScreen profile={loaded.profile} />} />
+          <Route path="/color-test" element={<ColorTestScreen />} />
+          <Route path="/color-test/capture/:color" element={<ColorCaptureScreen />} />
+          <Route path="/color-test/compare" element={<ColorCompareScreen />} />
+          <Route path="/color-test/results" element={<ColorResultsScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="*" element={<Navigate to="/wardrobe" replace />} />
         </Routes>

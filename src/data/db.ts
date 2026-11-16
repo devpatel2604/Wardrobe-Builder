@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
+import type { ColorTest } from '../domain/colorTest';
 import type { Photo, Piece, Profile } from '../domain/types';
 
 export interface MetaRow {
@@ -16,6 +17,7 @@ export class WardrobeDb extends Dexie {
   pieces!: EntityTable<Piece, 'id'>;
   photos!: EntityTable<Photo, 'id'>;
   meta!: Table<MetaRow, string>;
+  colorTests!: EntityTable<ColorTest, 'id'>;
 
   constructor(name = 'wardrobe-builder') {
     super(name);
@@ -24,6 +26,10 @@ export class WardrobeDb extends Dexie {
       pieces: 'id, status, *slots, updatedAt',
       photos: 'id, pieceId, kind',
       meta: 'key',
+    });
+    // The color photo test: one row, id "current". Its photos live in `photos` as "of-me".
+    this.version(2).stores({
+      colorTests: 'id',
     });
   }
 }
