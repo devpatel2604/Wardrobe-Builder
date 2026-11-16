@@ -1,3 +1,5 @@
+import type { TaggingRecord } from './tagging';
+
 /**
  * The data model for the foundation: one Profile document, Piece records and
  * their Photos. Terms follow the Phase 1 design brief, section 5.
@@ -208,6 +210,10 @@ export interface Piece {
   size?: string;
   link?: string;
   pricePaid?: number;
+  /** The price a store page showed, in dollars, for a piece not bought yet. */
+  listPrice?: number;
+  /** The day that price was read (YYYY-MM-DD). A price is only as good as its date. */
+  listPriceOn?: string;
   /** YYYY-MM-DD */
   acquiredOn?: string;
   wearCount: number;
@@ -219,6 +225,11 @@ export interface Piece {
    * file start as false, because the file gives only a name and a color.
    */
   detailsConfirmed: boolean;
+  /**
+   * What an AI model proposed when the piece was added, kept so its reading
+   * can be compared with what the owner saved. Missing on pieces added by hand.
+   */
+  tagging?: TaggingRecord;
   createdAt: string;
   updatedAt: string;
 }

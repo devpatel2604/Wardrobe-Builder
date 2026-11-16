@@ -16,6 +16,13 @@ export interface AppServer {
   down: boolean;
   /** Outside calls the server itself made (push service, weather). */
   outside: { url: string; init?: RequestInit }[];
+  /**
+   * Stands in for the AI provider. Given what the server sent, returns the
+   * JSON the model should answer with. Setting it also gives the server an AI key.
+   */
+  ai?: (request: Record<string, unknown>) => unknown;
+  /** Posts to the inbox the way the share-menu Shortcut does. */
+  share(fields: Record<string, string>, file?: { bytes: Uint8Array<ArrayBuffer>; type: string }): Promise<Response>;
   /** Stored backups, oldest first, exactly as the server holds them. */
   snapshots(): Promise<{ createdAt: string; data: string; photoIds: string[] }[]>;
   photoIds(): Promise<string[]>;
@@ -41,15 +48,37 @@ export async function startAppServer(): Promise<AppServer> {
       if (server.down) throw new TypeError('Failed to fetch');
       const headers = new Headers(init?.headers);
       const auth = headers.get('Authorization');
+      if (server.ai) inner.env.ANTHROPIC_API_KEY = 'sk-ant-test-key';
       return inner.call(method, url.pathname + url.search, {
         body,
+        headers: headers.has('Content-Type') ? { 'Content-Type': headers.get('Content-Type')! } : undefined,
         key: auth?.startsWith('Bearer ') ? auth.slice(7) : null,
         fetcher: async (outsideUrl, outsideInit) => {
           server.outside.push({ url: outsideUrl, init: outsideInit });
           if (outsideUrl.startsWith('https://web.push.apple.com/')) return new Response(null, { status: 201 });
+          if (outsideUrl.startsWith('https://api.anthropic.com/') && server.ai) {
+            const answer = server.ai(JSON.parse(String(outsideInit?.body)) as Record<string, unknown>);
+            const message = {
+              id: 'msg_test',
+              type: 'message',
+              role: 'assistant',
+              model: 'claude-opus-5-5',
+              content: [{ type: 'text', text: JSON.stringify(answer) }],
+              stop_reason: 'end_turn',
+              stop_sequence: null,
+              usage: { input_tokens: 1500, output_tokens: 300 },
+            };
+            return new Response(JSON.stringify(message), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          }
           throw new Error(`no network for ${outsideUrl}`);
         },
       });
+    },
+    async share(fields, file) {
+      const form = new FormData();
+      for (const [name, value] of Object.entries(fields)) form.set(name, value);
+      if (file) form.set('file', new Blob([file.bytes], { type: file.type }), 'shared');
+      return inner.call('POST', '/api/inbox', { body: form });
     },
     async snapshots() {
       const list = (await (await inner.call('GET', '/api/backup')).json()) as { snapshots: { id: string }[] };
@@ -72,6 +101,7 @@ export async function startAppServer(): Promise<AppServer> {
       server.requests.length = 0;
       server.outside.length = 0;
       server.down = false;
+      server.ai = undefined;
       await inner.reset();
     },
     close: () => inner.close(),
