@@ -3,10 +3,13 @@
 # The forecast comes from api.weather.gov, the one outside address allowed.
 # When a feature needs another outside service (the small server, an
 # Instagram iframe), add that address to connect-src or frame-src here.
+# Instagram may be shown in a frame (frame-src): a saved post plays in
+# Instagram's own player. Nothing else may be framed, and the app itself
+# still cannot be framed by anyone (frame-ancestors).
 # Location stays on for the app's own address only: Settings uses it once to
 # find the map point for the forecast.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' https://api.weather.gov; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' https://api.weather.gov; frame-src https://www.instagram.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer

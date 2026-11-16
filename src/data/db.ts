@@ -2,6 +2,7 @@ import Dexie, { type EntityTable, type Table } from 'dexie';
 import type { WishItem } from '../domain/buyNext/types';
 import type { ColorTest } from '../domain/colorTest';
 import type { InboxItem } from '../domain/inbox';
+import type { SavedLook } from '../domain/looks';
 import type { DayPlan, OutfitLogEntry } from '../domain/outfits/records';
 import type { Photo, Piece, Profile } from '../domain/types';
 
@@ -24,6 +25,7 @@ export class WardrobeDb extends Dexie {
   dayPlans!: EntityTable<DayPlan, 'date'>;
   outfitLog!: EntityTable<OutfitLogEntry, 'id'>;
   inbox!: EntityTable<InboxItem, 'id'>;
+  looks!: EntityTable<SavedLook, 'id'>;
   wishlist!: EntityTable<WishItem, 'id'>;
 
   constructor(name = 'wardrobe-builder') {
@@ -47,8 +49,12 @@ export class WardrobeDb extends Dexie {
     this.version(4).stores({
       inbox: 'id, kind, receivedAt',
     });
+    // Saved inspiration: one row per look. Its screenshots live in `photos`
+    // as "inspiration", under the id "look:<id>".
+    this.version(5).stores({
+      looks: 'id, updatedAt',
+    });
     // The buy-next list: needed pieces, each with the products found for it.
-    // Version 5 is the saved looks of the inspiration screens.
     this.version(6).stores({
       wishlist: 'id, state',
     });
